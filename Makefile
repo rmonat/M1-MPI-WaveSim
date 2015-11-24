@@ -2,11 +2,12 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 DFLAGS = -D DEBUG -g
 RM = rm -rf
-SRC = main.c
-OBJ = main.o
-OBJ_DEBUG = main.o.debug
+SRC = main.c automaton.c
+DEPS = automaton.h
+OBJ = main.o automaton.o
+OBJ_DEBUG = main.o.debug automaton.o.debug
 
-%.o: %.c
+%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 main: $(OBJ)
