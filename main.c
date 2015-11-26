@@ -34,6 +34,7 @@ void step0(inst instance, grid *g)
     int m = g->m;
     int u;
     int v;
+    char *b;
     double sqspeed = (g->v)*(g->v);
     grid tmp, current;
     new_grid(&tmp, g->n, g->m, g->v);
@@ -53,12 +54,23 @@ void step0(inst instance, grid *g)
 	    }
 	}
 
+	
+	if(instance.alldump != NULL)
+	{
+	    sprintf(b, instance.alldump, s);
+	    dump_grid(b, &tmp);
+	}
+
 	copy_grid(&tmp, &current);
     }
 
+    if(instance.lastdump != NULL)
+    {
+	dump_grid(instance.lastdump, &current);
+    }
+    
     free(tmp.data);
     free(current.data);
-	
 }
 
 
@@ -190,11 +202,29 @@ int main(int argc, char** argv)
     }
 
     // TESTS
-    grid g;
-    parse_file(input_path, &g);
-    g.data[0].u = 1;
-    g.data[1].u = 2;
-    dump_grid("bla", &g);
-    
+    //grid g;
+    //parse_file(input_path, &g);
+    //g.data[0].u = 1;
+    //g.data[1].u = 2;
+    //dump_grid("bla", &g);
+
+
+    if(step == 0)
+    {
+	inst instance;
+	instance.iteration = iteration;
+	instance.dt = dt;
+	instance.input_path = input_path;
+	instance.lastdump = lastdump;
+	instance.alldump = alldump;
+	instance.sensors = sensor;
+	instance.x = x;
+	instance.y = y;
+
+	grid g;
+	parse_file(input_path, &g);
+	step0(instance, &g);
+    }
     return 0;
 }
+

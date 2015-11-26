@@ -36,8 +36,14 @@ void dump_grid(char* filename, grid *g)
 	for(size_t j = 0; j < g->m; j++)
 	{
 	    fwrite(&(g->data[i*n+j].u), sizeof(double), 1, fp);
+#ifdef DEBUG
+	    fprintf(stderr, "%f", g->data[i*n+j].u);
 	    // TODO : danger, gérer les walls
+#endif
 	}
+#ifdef DEBUG
+	fprintf(stderr, "\n");
+#endif
     }
 
     fclose(fp);
