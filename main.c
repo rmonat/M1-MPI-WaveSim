@@ -30,37 +30,43 @@ inst;
 
 void step0(inst instance, grid *g)
 {
-    int n = g->n;
-    int m = g->m;
-    int u;
-    int v;
-    char *b;
+    size_t n = g->n;
+    size_t m = g->m;
+    char *b = malloc(256);
     double sqspeed = (g->v)*(g->v);
     grid tmp, current;
     new_grid(&tmp, g->n, g->m, g->v);
     new_grid(&current, g->n, g->m, g->v);
 
+#ifdef DEBUG
+    printf("sqspeed: %f\nn, m = %zu %zu\n", sqspeed, n, m);
+#endif
+    
     copy_grid(g, &current);
+
+    dump_grid("current", &current);
+    printf("\t\t\t%f\n", current.data[34+39*256].u);
+    
     for(int s = 0; s < instance.iteration; s++)
     {
-	for(size_t i = 0; i < g->n; i++)
+	for(size_t i = 0; i < n; i++)
 	{
-	    for(size_t j = 0; j < g->m; j++)
+	    for(size_t j = 0; j < m; j++)
 	    {
-		u = current.data[j+i*n].u;
-		v = current.data[j+i*n].v;
-		tmp.data[j+i*n].u = u + v;
-		tmp.data[j+i*n].v = v + sqspeed * (current.data[j+((i+1) % n)*n].u + current.data[j+((i-1) % n)*n].u + current.data[((j+1) % m) + i*n].u + current.data[((j-1) % m) + i*n].u - 4u);
+		// TODO : gérer les bords
+		tmp.data[j+i*m].u = current.data[j+i*m].u + (current.data[j+i*m].v * instance.dt);
+		tmp.data[j+i*m].v = current.data[j+i*m].v + sqspeed * (current.data[j+((i+1) % n)*m].u + current.data[j+((n+i-1) % n)*m].u + current.data[((j+1) % m) + i*m].u + current.data[((m+j-1) % m) + i*m].u - (4 * current.data[j+i*m].u)) * instance.dt;
+		
 	    }
 	}
+//	printf("\t\t\t%f\n", current.data[158+42*256].u);
 
-	
 	if(instance.alldump != NULL)
 	{
 	    sprintf(b, instance.alldump, s);
 	    dump_grid(b, &tmp);
 	}
-
+//	printf("%f %f -> %f %f\n", current.data[38+38*n].u, current.data[38+38*n].v, tmp.data[38+38*n].u, tmp.data[38+38*n].v);
 	copy_grid(&tmp, &current);
     }
 
@@ -71,6 +77,7 @@ void step0(inst instance, grid *g)
     
     free(tmp.data);
     free(current.data);
+    free(b);
 }
 
 

@@ -18,7 +18,7 @@ void new_grid(grid* g, size_t n, size_t m, double v)
 void copy_grid(grid* src, grid* dst)
 {
     assert(src->n == dst->n && src->m == dst->m && src->v == dst->v);
-    memcpy(dst->data, src->data, sizeof(double)*(src->n)*(src->m));
+    memcpy(dst->data, src->data, sizeof(cell)*(src->n)*(src->m));
 }
 
 void dump_grid(char* filename, grid *g)
@@ -31,18 +31,21 @@ void dump_grid(char* filename, grid *g)
     }
 
     int n = g->n;
-    for(size_t i = 0; i < g->n; i++)
+    int m = g->m;
+    
+//    fprintf(stderr, "\t\tn, m = %d %d\n", g->n, g->m);
+    for(size_t i = 0; i < n; i++)
     {
-	for(size_t j = 0; j < g->m; j++)
+	for(size_t j = 0; j < m; j++)
 	{
-	    fwrite(&(g->data[i*n+j].u), sizeof(double), 1, fp);
+	    fwrite(&(g->data[i*m+j].u), sizeof(double), 1, fp);
 #ifdef DEBUG
-	    fprintf(stderr, "%f", g->data[i*n+j].u);
-	    // TODO : danger, gérer les walls
+//	    fprintf(stderr, "%f", g->data[i*m+j].u);
+//	    TODO : danger, gérer les walls
 #endif
 	}
 #ifdef DEBUG
-	fprintf(stderr, "\n");
+//	fprintf(stderr, "\n");
 #endif
     }
 
@@ -83,18 +86,22 @@ void parse_file(char* filename, grid *g)
 	{
 	    fread(&cell_type, sizeof(char), 1, fp);
 	    fread(&cell_value, sizeof(double), 1, fp);
-	    g->data[i*n+j].type = 1 - cell_type; // my definition, cells are 1, walls are 0
-	    g->data[i*n+j].u = cell_value;
-	    g->data[i*n+j].v = 0;
+	    if(cell_type == 1)
+		printf("%d %d\n", i, j);
+	    g->data[i*m+j].type = 1 - cell_type; // my definition, cells are 1, walls are 0
+	    g->data[i*m+j].u = cell_value;
+	    g->data[i*m+j].v = 0;
 	}
 
 #ifdef DEBUG
-    printf("Initial grid: %d %zd %zd %f\n", test, n, m, v);
+    fprintf(stderr, "Initial grid: %d %zd %zd %f\n", test, n, m, v);
     for(size_t i = 0; i < n; i++)
     {
-	for(size_t j = 0; j < m; j++)
-	    printf("%f ", g->data[i*n+j].u);
-	printf("\n");
+    	for(size_t j = 0; j < m; j++)
+	{
+    	    fprintf(stderr, "%f ", g->data[i*m+j].u);
+	}
+    	fprintf(stderr, "\n");
     }
 #endif
     

@@ -150,7 +150,7 @@ class Params:
 d_map = matplotlib.cm.get_cmap('seismic')
 d_map.set_bad((0,0,0))
 
-ratio = numpy.sqrt(args.size[0] / args.size[1])
+ratio = numpy.sqrt(args.size[0] /(args.size[1]))
 
 win = Window(figsize = (10*ratio,10/ratio))
 win.addImg(Params().setCmap(d_map).setMin(args.min).setMax(args.max).setLog(False))
@@ -175,7 +175,7 @@ def updateWindow(frame = 0):
 
 if args.format == 'mp4':
 	anim = anm.FuncAnimation(win.fig, updateWindow, frames=args.numframe, interval=20, blit=True)
-	anim.save(args.output, fps=30, extra_args=['-vcodec', 'h264', '-pix_fmt', 'yuv420p'], savefig_kwargs={'facecolor':win.fig.get_facecolor()})
+	anim.save(args.output, fps=30, savefig_kwargs={'facecolor':win.fig.get_facecolor()})
 
 elif args.format == 'show':
 	updateWindow()

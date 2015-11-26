@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra
+CFLAGS = -Wall -Wextra -g
 DFLAGS = -D DEBUG -g
 RM = rm -rf
 SRC = main.c automaton.c
@@ -23,4 +23,4 @@ latex:
 	pdflatex report.tex
 
 clean:
-	$(RM) *.o *.aux *.log *.out
+	$(RM) *.o *.aux *.log *.out *.o.debug
