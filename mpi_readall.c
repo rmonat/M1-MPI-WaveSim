@@ -32,14 +32,11 @@ int main(int argc, char** argv)
     input *chunk = malloc(sizeof(input)*2);
 //    void *chunk = malloc(18);
     
-    int n = 128;
-    int m = 256;
     
     int blocks[2] = {1,1};
     MPI_Datatype types[2] = {MPI_BYTE, MPI_DOUBLE};
     MPI_Aint displacements[2];
     MPI_Datatype cell_type;
-    MPI_Aint charex, doublex;
     displacements[0] = offsetof(input, type);
     displacements[1] = offsetof(input, val);
     MPI_Type_create_struct(2, blocks, displacements, types, &cell_type);
@@ -48,11 +45,7 @@ int main(int argc, char** argv)
     MPI_Type_size(cell_type, &cell_type_size);
 
     MPI_File_read_at_all(in, globalstart, chunk, mysize / cell_type_size, cell_type, MPI_STATUS_IGNORE);
-    input *res = (input *) chunk;
-    if(rank == 0)
-	printf("0 - Got %d %f\n", res->val, res->type);
-    if(rank == 3)
-	printf("Got %d %f\n", res->val, res->type);
+    printf("%d - Got %f %d %f %d\n", rank, chunk[0].val, chunk[0].type, chunk[1].val, chunk[1].type);
     
     MPI_File_close(&in);
     MPI_Finalize();
