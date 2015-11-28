@@ -9,8 +9,8 @@ int main(int argc, char** argv)
 {
     typedef struct
     {
-	double val;
 	char type;
+	double val;
     } input;
 
     int rank, size;
@@ -27,10 +27,10 @@ int main(int argc, char** argv)
     MPI_File_get_size(in, &filesize);
 
     int mysize = filesize/size;
+    if(rank == 0)
+	printf("filesize, mysize %d %d\n", filesize, mysize);
     int globalstart = rank * mysize;
 
-    input *chunk = malloc(sizeof(input)*2);
-//    void *chunk = malloc(18);
     
     
     int blocks[2] = {1,1};
@@ -43,9 +43,26 @@ int main(int argc, char** argv)
     MPI_Type_commit(&cell_type);
     int cell_type_size;
     MPI_Type_size(cell_type, &cell_type_size);
+    input *chunk = malloc(4*sizeof(input));//cell_type_size);
+//    void *chunk = malloc(18);
 
-    MPI_File_read_at_all(in, globalstart, chunk, mysize / cell_type_size, cell_type, MPI_STATUS_IGNORE);
-    printf("%d - Got %f %d %f %d\n", rank, chunk[0].val, chunk[0].type, chunk[1].val, chunk[1].type);
+
+    /* MPI_Datatype matrix; */
+    /* int sizes[2] = {4, 4}; */
+    /* int subsizes[2] = {2, 2}; */
+    /* int starts[2] = {0, 0}; */
+
+    /* MPI_Type_create_subarray(2, sizes, subsizes, starts, MPI_ORDER_C, cell_type, &matrix); */
+    /* MPI_Type_commit(&matrix); */
+    /* int matrix_type_size; */
+    /* MPI_Type_size(matrix, &matrix_type_size); */
+    /* if(rank == 0) */
+    /* 	printf("matsize %d, bla %d\n", matrix_type_size, mysize/cell_type_size); */
+
+//    MPI_File_set_view(in, 0, cell_type, cell, "native", MPI_INFO_NULL);
+    MPI_File_read_at_all(in, globalstart, chunk, mysize/cell_type_size, cell_type, MPI_STATUS_IGNORE);
+    
+    printf("%d - Got %f %d %f %d %f %d %f %d\n", rank, chunk[0].val, chunk[0].type, chunk[1].val, chunk[1].type, chunk[2].val, chunk[2].type, chunk[3].val, chunk[3].type) ;
     
     MPI_File_close(&in);
     MPI_Finalize();
