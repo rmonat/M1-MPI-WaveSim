@@ -1,4 +1,4 @@
-CC = gcc
+CC = mpicc
 CFLAGS = -Wall -Wextra -O3
 DFLAGS = -D DEBUG -g
 RM = rm -rf
