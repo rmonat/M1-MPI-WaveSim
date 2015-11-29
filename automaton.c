@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "args.h"
 #include "automaton.h"
 
 // TODO regarder les return values des fwrite, fread ?
@@ -30,8 +31,8 @@ void dump_grid(char* filename, grid *g)
 	perror("Error during grid dumping:");
     }
 
-    int n = g->n;
-    int m = g->m;
+    size_t n = g->n;
+    size_t m = g->m;
     
 //    fprintf(stderr, "\t\tn, m = %d %d\n", g->n, g->m);
     for(size_t i = 0; i < n; i++)
@@ -69,8 +70,8 @@ void parse_file(char* filename, grid *g)
     size_t m;
     double v;
     fread(&test, sizeof(char), 1, fp);
-    fread(&n, sizeof(size_t), 1, fp);
     fread(&m, sizeof(size_t), 1, fp);
+    fread(&n, sizeof(size_t), 1, fp);
     fread(&v, sizeof(double), 1, fp);
 
     char cell_type;
