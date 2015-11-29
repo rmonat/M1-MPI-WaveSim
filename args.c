@@ -7,7 +7,18 @@
 
 void print_usage()
 {
-    printf("Usage: \n\n");
+    fprintf(stderr, "Usage: ./main\n"
+	   "\t-step <nb>:\n\t\t0 sequential computations\n\t\t1 parallel computation\n\t\t2 parallel computations, walls\n\t\t3 parallel computations, sensors\n\t\t4 parallel computations, local speeds\n"
+	   "\t-i <input file>: path to the input file describing the environment\n"
+	   "\t-iteration <iteration number>: number of iterations to compute\n"
+	   "\t-dt <dt number>: value for dt, the size of a time-step\n"
+	   "\t-grid <p> <q>: dimensions of the processor gird\n\n"
+	   "Optional arguments:\n"
+	   "\t-lastdump <output path>: in that case, the matrix of values at the last step is written into <output path>\n"
+	   "\t-alldump <output path>: in that case, the matrix of values is dumped at each step in a format given by <output path>\n"
+	   "\t-sensor <output path>: in that case, sensors values are exported to <output path>\n\n"
+	   "Example:\n"
+	   "mpirun -np 32 ./main -step 3 -i toolbox/sample_type1.in -iterations 1000 -dt 0.1 -grid 4 8 -alldump output_%%03d.dump -sensor output_sensor.log\n");
     
 // TODO : et frprintf sur stderr en plus
 
@@ -26,7 +37,7 @@ void init_inst(inst *instance)
     instance->q = -1;
 }
 
-void parse_options(inst *instance, int argc, char **argv)
+int parse_options(inst *instance, int argc, char **argv, int rank)
 {
     int opt;
     init_inst(instance);
@@ -91,25 +102,27 @@ void parse_options(inst *instance, int argc, char **argv)
     }
 
 #ifdef DEBUG
-    fprintf(stderr, "Option Recap:\n"
-	    "\tstep: %d\n"
-	    "\tinput: %s\n"
-	    "\titeration: %d\n"
-	    "\tdt: %f\n"
-	    "\tgrid: %d %d\n",
-	    instance->step, instance->input_path, instance->iteration, instance->dt, instance->p, instance->q);
-    if(instance->lastdump != NULL)
+    if(rank == 0)
     {
-	fprintf(stderr, "\tlastdump: %s\n", instance->lastdump);
+	fprintf(stderr, "Option Recap:\n"
+		"\tstep: %d\n"
+		"\tinput: %s\n"
+		"\titeration: %d\n"
+		"\tdt: %f\n"
+		"\tgrid: %d %d\n",
+		instance->step, instance->input_path, instance->iteration, instance->dt, instance->p, instance->q);
+	if(instance->lastdump != NULL)
+	{
+	    fprintf(stderr, "\tlastdump: %s\n", instance->lastdump);
 //	char *b;
 //	sprintf(b, lastdump, 2);
 //	printf("\t\t%s\n", b);
+	}
+	if(instance->alldump != NULL)
+	    fprintf(stderr, "\talldump: %s\n", instance->alldump);
+	if(instance->sensors != NULL)
+	    fprintf(stderr, "\tsensor: %s\n", instance->sensors);
     }
-    if(instance->alldump != NULL)
-	fprintf(stderr, "\talldump: %s\n", instance->alldump);
-    if(instance->sensors != NULL)
-	fprintf(stderr, "\tsensor: %s\n", instance->sensors);
-
 #endif
 
     int err = 0;
@@ -117,32 +130,34 @@ void parse_options(inst *instance, int argc, char **argv)
     if(!(instance->step >= 0 && instance->step <= 4))
     {
 	err = 1;
-	fprintf(stderr, "Error: step must be between 0 and 4\n");
+	if(rank == 0) fprintf(stderr, "Error: step must be between 0 and 4\n");
     }
     if(instance->iteration <= 0)
     {
 	err = 1;
-	fprintf(stderr, "Error: the number of iterations should be a positive integer\n");
+	if(rank == 0) fprintf(stderr, "Error: the number of iterations should be a positive integer\n");
     }
     if(instance->dt == 0)
     {
 	err = 1;
-	fprintf(stderr, "Error: dt should not be 0\n");
+	if(rank == 0) fprintf(stderr, "Error: dt should not be 0\n");
     }
     if(instance->p <= 0)
     {
 	err = 1;
-	fprintf(stderr, "Error: the p-coordinate of the grid should be a positive integer\n");
+	if(rank == 0) fprintf(stderr, "Error: the p-coordinate of the grid should be a positive integer\n");
     }
     if(instance->q <= 0)
     {
 	err = 1;
-	fprintf(stderr, "Error: the q-coordinate of the grid should be a positive integer\n");
+	if(rank == 0) fprintf(stderr, "Error: the q-coordinate of the grid should be a positive integer\n");
     }
 
     if(err == 1)
     {
-	print_usage(); 
-	exit(EXIT_FAILURE);
+	if(rank == 0) print_usage(); 
+	return 1;
     }
+
+    return 0;
 }

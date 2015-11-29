@@ -15,4 +15,4 @@ inst;
 
 void print_usage();
 void init_inst(inst *instance);
-void parse_options(inst *instance, int argc, char **argv);
+int parse_options(inst *instance, int argc, char **argv, int rank);

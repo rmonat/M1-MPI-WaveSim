@@ -18,13 +18,22 @@ int main(int argc, char** argv)
 
     // TODO : gérer, n'utiliser qu'un rang
     inst instance;
-    parse_options(&instance, argc, argv);
-
-    if(instance.step == 0 && rank == 0)
+    if(parse_options(&instance, argc, argv, rank) == 1)
     {
-	grid g;
-	parse_file(instance.input_path, &g);
-	step0(instance, &g);
+	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Finalize();
+	exit(EXIT_FAILURE);
+    }
+//	MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+
+    if(instance.step == 0)
+    {
+	if(rank == 0)
+	{
+	    grid g;
+	    parse_file(instance.input_path, &g);
+	    step0(instance, &g);
+	}
     }
     else
     {
@@ -68,10 +77,11 @@ int main(int argc, char** argv)
 	// Now we create the data structures.
 	int blocks[2] = {1, 1};
 	MPI_Datatype types[2] = {MPI_BYTE, MPI_DOUBLE};
-	MPI_Aint p_size = 9;
-	MPI_Aint p_disp[2] = {0, 1};
 	MPI_Aint a_size = sizeof(cell);
 	MPI_Aint a_disp[2] = {offsetof(cell, type), offsetof(cell, u)};
+
+	MPI_Aint p_size = 9;
+	MPI_Aint p_disp[2] = {0, 1};
 
 	MPI_Datatype p_tmp, a_tmp, p_cell, a_cell;
 
@@ -94,26 +104,129 @@ int main(int argc, char** argv)
 	MPI_Type_create_subarray(2, sizes, subsizes, starts, MPI_ORDER_C, p_cell, &matrix);
 	MPI_Type_commit(&matrix);
 
+	// We extend this matrix
+	MPI_Datatype ematrix;
+	int e_subsizes[2] = {2 + subsizes[0], 2 + subsizes[1]};
+	int e_start[2] = {1, 1};
+	MPI_Type_create_subarray(2, e_subsizes, subsizes, e_start, MPI_ORDER_C, a_cell, &ematrix);
+	MPI_Type_commit(&ematrix);
+	
 	// Set file view for each element
 	MPI_Offset grid_start;
 	MPI_File_get_position(input_file, &grid_start);
 
 
 	size_t local_size = nb_cells / (instance.p * instance.q);
+	size_t local_nrows = global_grid.n/instance.p;
+	size_t local_ncols = global_grid.m/instance.q;
 	
 	MPI_File_set_view(input_file, grid_start + global_grid.m*global_grid.n/(instance.p)*p_size*coord[0] + global_grid.m/(instance.q)*p_size*coord[1], p_cell, matrix, "native", MPI_INFO_NULL);
 
 	// allocate the cell array we will use
-	cell *cells = malloc(local_size*sizeof(cell));
+	cell **cells;
+	cells = malloc(2*sizeof(cell *));
 
-	MPI_File_read_all(input_file, cells, local_size, a_cell, MPI_STATUS_IGNORE);
+	cells[1] = malloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q)*sizeof(cell));
+	cells[0] = malloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q)*sizeof(cell));
+
+	MPI_File_read_all(input_file, cells[0], 1, ematrix, MPI_STATUS_IGNORE);
+
 
 
 #ifdef DEBUG
-	for(size_t i = 0; i < local_size; i++)
-	    fprintf(stderr, "%d - %d %f\n", rank, cells[i].type, cells[i].u);
+	for(size_t i = 1; i < 1+global_grid.n/instance.p; i++)
+	    for(size_t j = 1; j < 1+global_grid.m/instance.q; j++)
+		fprintf(stderr, "%d - %d %f\n", rank, cells[0][i*(2+global_grid.m/instance.q)+j].type, cells[0][i*(2+global_grid.m/instance.q)+j].u);
 #endif
 
+	MPI_Datatype l_row; // local row
+	MPI_Type_contiguous(global_grid.n/instance.p, a_cell, &l_row);
+	MPI_Type_commit(&l_row);
+
+	MPI_Datatype l_col; // local column. A bit trickier, we need a type_vector.
+	MPI_Type_vector(local_nrows, 1, local_ncols+1, a_cell, &l_col);
+	MPI_Type_commit(&l_col);
+
+
+	int top, bot, left, right, t[2], b[2], r[2], l[2];
+	double sqspeed = global_grid.v * global_grid.v;
+
+	for(int s = 0; s < instance.iteration; s++)
+	{
+	    //  TODO : SYNCHRONISER MIEUX ?
+	    MPI_Barrier(MPI_COMM_WORLD);
+
+	    // on va communiquer dans cell[curr]...
+	    // et mettre à jour dans cell[next]...
+	    int curr = s % 2;
+	    int next = (s+1) % 2;
+	    
+	    // We copy the edges of the grid.
+	    // We first need the ranks of the neighbours
+	    t[0] = (coord[0]+1) % instance.p;
+	    t[1] = coord[1];
+	
+	    b[0] = (instance.p+coord[0]-1) % instance.p;
+	    b[1] = coord[1];
+
+	    r[0] = coord[0];
+	    r[1] = (coord[1]+1) % instance.q;
+	    
+	    l[0] = coord[0];
+	    l[1] = (instance.q+coord[1]-1) % instance.q;
+
+	    MPI_Cart_rank(comm, t, &top);
+	    MPI_Cart_rank(comm, b, &bot);
+	    MPI_Cart_rank(comm, r, &right);
+	    MPI_Cart_rank(comm, l, &left);
+
+	    // Then we need to update the edges of our local grid
+	    // Update top and bottom rows
+	    MPI_Sendrecv(&(cells[curr][local_ncols+3]),                     1, l_row, top, 0,
+			 &(cells[curr][(local_ncols+2)*(local_nrows+1)+1]), 1, l_row, bot, 0,
+			 comm, MPI_STATUS_IGNORE);
+	
+	    MPI_Sendrecv(&(cells[curr][(local_ncols+2)*(local_nrows)+1]),   1, l_row, bot, 0,
+			 &(cells[curr][1]),                                 1, l_row, top, 0,
+			 comm, MPI_STATUS_IGNORE);
+	
+	    // Update left and right
+	    MPI_Sendrecv(&(cells[curr][local_ncols+3]),                     1, l_col, left,  0,
+			 &(cells[curr][2*(local_ncols+2)-1]),               1, l_col, right, 0,
+			 comm, MPI_STATUS_IGNORE);
+
+	    MPI_Sendrecv(&(cells[curr][2*(local_ncols+2)-2]),               1, l_col, right, 0,
+			 &(cells[curr][local_ncols+2]),                     1, l_col, left,  0,
+			 comm, MPI_STATUS_IGNORE);
+
+
+
+	    // We compute the update of the grid
+	    for(size_t i = 1; i < 1+local_nrows; i++)
+	    {
+		for(size_t j = 1; j < 1+local_ncols; j++)
+		{
+		    cells[next][j+i*(2+local_ncols)].u = cells[curr][j+i*(2+local_ncols)].u + (cells[curr][j+i*(2+local_ncols)].v * instance.dt);
+		    cells[next][j+i*(2+local_ncols)].v = cells[curr][j+i*(2+local_ncols)].v + sqspeed * (cells[curr][j+((i+1))*(2+local_ncols)].u + cells[curr][j+(i-1)*(local_ncols)].u + cells[curr][(j+1) + i*(2+local_ncols)].u + cells[curr][(j-1) + i*(2+local_ncols)].u - (4 * cells[curr][j+i*(2+local_ncols)].u)) * instance.dt;
+		    
+		}
+	    }
+
+	}
+	
+	
+	if(instance.lastdump != NULL)
+	{
+	    // bon, comment on fait ça ? peut être qu'en faisant un resize ça marche ?
+	    /* MPI_File last_file; */
+
+	    /* // We start by reading the header of the file */
+	    /* MPI_File_open(comm,  instance.lastdump, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &last_file); */
+	    /* MPI_File_set_view(last_file, global_grid.m*global_grid.n/(instance.p)*sizeof(doube)*coord[0] + global_grid.m/(instance.q)*sizeof(double)*coord[1], MPI_DOUBLE */
+
+
+	}
+	
 
 	// Some cleaning
 	free(cells);
@@ -125,4 +238,8 @@ int main(int argc, char** argv)
     }
     return 0;
 }
+
+// on fait le truc de la non copie et alternance modulo 2 ?
+//Sendrecv des edges
+//void update_grid(cell *cells, quelques éléments de l'instance);
 
