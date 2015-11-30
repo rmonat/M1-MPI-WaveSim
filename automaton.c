@@ -70,8 +70,8 @@ void parse_file(char* filename, grid *g)
     size_t m;
     double v;
     fread(&test, sizeof(char), 1, fp);
-    fread(&m, sizeof(size_t), 1, fp);
     fread(&n, sizeof(size_t), 1, fp);
+    fread(&m, sizeof(size_t), 1, fp);
     fread(&v, sizeof(double), 1, fp);
 
     char cell_type;

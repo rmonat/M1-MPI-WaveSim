@@ -62,9 +62,9 @@ int main(int argc, char** argv)
 	// We start by reading the header of the file
 	MPI_File_open(comm,  instance.input_path, MPI_MODE_RDONLY, MPI_INFO_NULL, &input_file);
 	MPI_File_read_all(input_file, &type, 1, MPI_CHAR, MPI_STATUS_IGNORE);
-	// maybe we need to swap the next 2 lines
-	MPI_File_read_all(input_file, &(global_grid.m), 1, MPI_UINT64_T, MPI_STATUS_IGNORE);
+	// we needed to swap the next 2 lines
 	MPI_File_read_all(input_file, &(global_grid.n), 1, MPI_UINT64_T, MPI_STATUS_IGNORE);
+	MPI_File_read_all(input_file, &(global_grid.m), 1, MPI_UINT64_T, MPI_STATUS_IGNORE);
 	MPI_File_read_all(input_file, &(global_grid.v), 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
 
 #ifdef DEBUG
