@@ -48,7 +48,7 @@ int main(int argc, char** argv)
 	MPI_Comm comm;
 	int dim[2] = {instance.p, instance.q};
 	int period[2] = {1, 1};
-	int reorder = 1;
+	int reorder = 0;
 	int coord[2];
 	MPI_Cart_create(MPI_COMM_WORLD, 2, dim, period, reorder, &comm);
 	MPI_Cart_coords(comm, rank, 2, coord);
@@ -157,11 +157,11 @@ int main(int argc, char** argv)
 #endif
 
 	MPI_Datatype l_row; // local row
-	MPI_Type_contiguous(global_grid.n/instance.p, a_cell, &l_row);
+	MPI_Type_contiguous(local_ncols, a_cell, &l_row);
 	MPI_Type_commit(&l_row);
 
 	MPI_Datatype l_col; // local column. A bit trickier, we need a type_vector.
-	MPI_Type_vector(local_nrows, 1, local_ncols+1, a_cell, &l_col);
+	MPI_Type_vector(local_nrows, 1, local_ncols+2, a_cell, &l_col);
 	MPI_Type_commit(&l_col);
 
 	
@@ -171,24 +171,10 @@ int main(int argc, char** argv)
 	int curr = 0, next = 0;
 	char *alldump = malloc(256);
 
-	if(rank == 0)
-	{
-	    /* cells[0][2+local_ncols+1].u = 1; */
-	    /* cells[0][2+local_ncols+2].u = 1; */
-	    /* cells[0][2+local_ncols+3].u = 1;  */
-	    /* cells[0][2+local_ncols+4].u = 1;  */
-	    /* cells[0][2*(2+local_ncols)+1].u = 1; */
-	    /* cells[0][2*(2+local_ncols)+2].u = 1; */
-	    /* cells[0][2*(2+local_ncols)+3].u = 1; */
-//	    cells[0][2*(2+local_ncols)+4].u = 1;
-
-	}
-
-
 	for(int s = 0; s < instance.iteration; s++)
 	{
 	    //  TODO : SYNCHRONISER MIEUX ? Ou peut être même pas besoin de synchroniser en fait
-	    MPI_Barrier(MPI_COMM_WORLD);
+	    //MPI_Barrier(MPI_COMM_WORLD);
 
 	    // on va communiquer dans cell[curr]...
 	    // et mettre à jour dans cell[next]...
@@ -197,26 +183,14 @@ int main(int argc, char** argv)
 	    
 	    // We copy the edges of the grid.
 	    // We first need the ranks of the neighbours
-	    t[0] = (coord[0]+1) % instance.p;
-	    t[1] = coord[1];
-	
-	    b[0] = (instance.p+coord[0]-1) % instance.p;
-	    b[1] = coord[1];
 
-	    r[0] = coord[0];
-	    r[1] = (coord[1]+1) % instance.q;
+	    MPI_Cart_shift(comm, 0, 1, &top, &bot);
+	    MPI_Cart_shift(comm, 1, 1, &left, &right);
 	    
-	    l[0] = coord[0];
-	    l[1] = (instance.q+coord[1]-1) % instance.q;
-
-	    MPI_Cart_rank(comm, t, &top);
-	    MPI_Cart_rank(comm, b, &bot);
-	    MPI_Cart_rank(comm, r, &right);
-	    MPI_Cart_rank(comm, l, &left);
 
 	    // Then we need to update the edges of our local grid
 	    // Update top and bottom rows
-	    MPI_Sendrecv(&(cells[curr][local_ncols+3]),                     1, l_row, top, 0,
+	    MPI_Sendrecv(&(cells[curr][1*(local_ncols+2)+1]),               1, l_row, top, 0,
 			 &(cells[curr][(local_ncols+2)*(local_nrows+1)+1]), 1, l_row, bot, 0,
 			 comm, MPI_STATUS_IGNORE);
 	
@@ -225,12 +199,12 @@ int main(int argc, char** argv)
 			 comm, MPI_STATUS_IGNORE);
 	
 	    // Update left and right
-	    MPI_Sendrecv(&(cells[curr][local_ncols+3]),                     1, l_col, left,  0,
-			 &(cells[curr][2*(local_ncols+2)-1]),               1, l_col, right, 0,
+	    MPI_Sendrecv(&(cells[curr][1*(local_ncols+2)+1]),             1, l_col, left,  0,
+			 &(cells[curr][1*(local_ncols+2)+local_ncols+1]), 1, l_col, right, 0,
 			 comm, MPI_STATUS_IGNORE);
 
-	    MPI_Sendrecv(&(cells[curr][2*(local_ncols+2)-2]),               1, l_col, right, 0,
-			 &(cells[curr][local_ncols+2]),                     1, l_col, left,  0,
+	    MPI_Sendrecv(&(cells[curr][1*(local_ncols+2)+local_ncols]),   1, l_col, right, 0,
+			 &(cells[curr][1*(local_ncols+2)]),               1, l_col, left,  0,
 			 comm, MPI_STATUS_IGNORE);
 
 
