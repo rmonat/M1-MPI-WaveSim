@@ -94,7 +94,6 @@ int main(int argc, char** argv)
 	MPI_Type_create_struct(2, blocks, p_disp, types, &p_tmp);
 	MPI_Type_create_resized(p_tmp, 0, p_size, &p_cell);
 	MPI_Type_commit(&p_cell);
-	
 
 	// Now, we create our matrix
 	MPI_Datatype matrix;
@@ -111,6 +110,23 @@ int main(int argc, char** argv)
 	MPI_Type_create_subarray(2, e_subsizes, subsizes, e_start, MPI_ORDER_C, a_cell, &ematrix);
 	MPI_Type_commit(&ematrix);
 	
+
+	// The next 3 types are for the export of the grid
+	MPI_Datatype d_type;
+	MPI_Type_create_resized(MPI_DOUBLE, 0, sizeof(cell), &d_type);
+	MPI_Type_commit(&d_type);
+	
+
+	MPI_Datatype d_matrix;
+	MPI_Type_create_subarray(2, sizes, subsizes, starts, MPI_ORDER_C, MPI_DOUBLE, &d_matrix);
+	MPI_Type_commit(&d_matrix);
+
+	MPI_Datatype d_rmatrix; // to go from the extended matrix with ghost zones to the other one
+	MPI_Type_create_subarray(2, e_subsizes, subsizes, e_start, MPI_ORDER_C, d_type, &d_rmatrix);
+	MPI_Type_commit(&d_rmatrix);
+
+
+
 	// Set file view for each element
 	MPI_Offset grid_start;
 	MPI_File_get_position(input_file, &grid_start);
@@ -126,6 +142,7 @@ int main(int argc, char** argv)
 	cell **cells;
 	cells = malloc(2*sizeof(cell *));
 
+	
 	cells[1] = malloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q)*sizeof(cell));
 	cells[0] = malloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q)*sizeof(cell));
 
@@ -147,19 +164,36 @@ int main(int argc, char** argv)
 	MPI_Type_vector(local_nrows, 1, local_ncols+1, a_cell, &l_col);
 	MPI_Type_commit(&l_col);
 
-
+	
 	int top, bot, left, right, t[2], b[2], r[2], l[2];
 	double sqspeed = global_grid.v * global_grid.v;
 
+	int curr = 0, next = 0;
+	char *alldump = malloc(256);
+
+	if(rank == 0)
+	{
+	    /* cells[0][2+local_ncols+1].u = 1; */
+	    /* cells[0][2+local_ncols+2].u = 1; */
+	    /* cells[0][2+local_ncols+3].u = 1;  */
+	    /* cells[0][2+local_ncols+4].u = 1;  */
+	    /* cells[0][2*(2+local_ncols)+1].u = 1; */
+	    /* cells[0][2*(2+local_ncols)+2].u = 1; */
+	    /* cells[0][2*(2+local_ncols)+3].u = 1; */
+//	    cells[0][2*(2+local_ncols)+4].u = 1;
+
+	}
+
+
 	for(int s = 0; s < instance.iteration; s++)
 	{
-	    //  TODO : SYNCHRONISER MIEUX ?
+	    //  TODO : SYNCHRONISER MIEUX ? Ou peut être même pas besoin de synchroniser en fait
 	    MPI_Barrier(MPI_COMM_WORLD);
 
 	    // on va communiquer dans cell[curr]...
 	    // et mettre à jour dans cell[next]...
-	    int curr = s % 2;
-	    int next = (s+1) % 2;
+	    curr = s % 2;
+	    next = (s+1) % 2;
 	    
 	    // We copy the edges of the grid.
 	    // We first need the ranks of the neighbours
@@ -207,22 +241,37 @@ int main(int argc, char** argv)
 		for(size_t j = 1; j < 1+local_ncols; j++)
 		{
 		    cells[next][j+i*(2+local_ncols)].u = cells[curr][j+i*(2+local_ncols)].u + (cells[curr][j+i*(2+local_ncols)].v * instance.dt);
-		    cells[next][j+i*(2+local_ncols)].v = cells[curr][j+i*(2+local_ncols)].v + sqspeed * (cells[curr][j+((i+1))*(2+local_ncols)].u + cells[curr][j+(i-1)*(local_ncols)].u + cells[curr][(j+1) + i*(2+local_ncols)].u + cells[curr][(j-1) + i*(2+local_ncols)].u - (4 * cells[curr][j+i*(2+local_ncols)].u)) * instance.dt;
+		    cells[next][j+i*(2+local_ncols)].v = cells[curr][j+i*(2+local_ncols)].v + sqspeed * (cells[curr][j+(i+1)*(2+local_ncols)].u + cells[curr][j+(i-1)*(2+local_ncols)].u + cells[curr][(j+1) + i*(2+local_ncols)].u + cells[curr][(j-1) + i*(2+local_ncols)].u - (4 * cells[curr][j+i*(2+local_ncols)].u)) * instance.dt;
 		    
 		}
 	    }
 
+	    if(instance.alldump != NULL)
+	    {
+		MPI_File dump_file;
+
+		sprintf(alldump, instance.alldump, s);
+		MPI_File_open(comm, alldump, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &dump_file);
+		
+		MPI_File_set_view(dump_file, global_grid.m*global_grid.n/(instance.p)*sizeof(double)*coord[0] + global_grid.m/(instance.q)*sizeof(double)*coord[1], MPI_DOUBLE, d_matrix, "native", MPI_INFO_NULL);
+		
+		MPI_File_write_all(dump_file, &(cells[curr][0].u), 1, d_rmatrix, MPI_STATUS_IGNORE);
+		MPI_File_close(&dump_file);
+
+
+	    }
 	}
-	
+
 	
 	if(instance.lastdump != NULL)
 	{
 	    // bon, comment on fait ça ? peut être qu'en faisant un resize ça marche ?
-	    /* MPI_File last_file; */
+	    MPI_File last_file;
+	    MPI_File_open(comm, instance.lastdump, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &last_file); 
+	    MPI_File_set_view(last_file, global_grid.m*global_grid.n/(instance.p)*sizeof(double)*coord[0] + global_grid.m/(instance.q)*sizeof(double)*coord[1], MPI_DOUBLE, d_matrix, "native", MPI_INFO_NULL); // déjà, il y a un grid_strat en trop, d_type ou MPI_DOUBLE ?
 
-	    /* // We start by reading the header of the file */
-	    /* MPI_File_open(comm,  instance.lastdump, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &last_file); */
-	    /* MPI_File_set_view(last_file, global_grid.m*global_grid.n/(instance.p)*sizeof(doube)*coord[0] + global_grid.m/(instance.q)*sizeof(double)*coord[1], MPI_DOUBLE */
+	    MPI_File_write_all(last_file, &(cells[next][0].u), 1, d_rmatrix, MPI_STATUS_IGNORE);
+	    MPI_File_close(&last_file);
 
 
 	}
@@ -230,7 +279,8 @@ int main(int argc, char** argv)
 
 	// Some cleaning
 	free(cells);
-	MPI_File_close(&input_file);
+	free(alldump);
+	MPI_File_close(&input_file); // TODO : mettre plus tôt
 	MPI_Type_free(&p_cell);
 	MPI_Type_free(&a_cell);
 	MPI_Type_free(&matrix);
