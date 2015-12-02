@@ -2,6 +2,7 @@ typedef struct inst
 {
     int iteration;
     int step;
+    int frequency;
     double dt;
     char *input_path;
     char *lastdump;

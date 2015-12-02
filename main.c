@@ -220,11 +220,11 @@ int main(int argc, char** argv)
 		}
 	    }
 
-	    if(instance.alldump != NULL)
+	    if(instance.alldump != NULL && s % instance.frequency == 0)
 	    {
 		MPI_File dump_file;
 
-		sprintf(alldump, instance.alldump, s);
+		sprintf(alldump, instance.alldump, (s / instance.frequency));
 		MPI_File_open(comm, alldump, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &dump_file);
 		
 		MPI_File_set_view(dump_file, global_grid.m*global_grid.n/(instance.p)*sizeof(double)*coord[0] + global_grid.m/(instance.q)*sizeof(double)*coord[1], MPI_DOUBLE, d_matrix, "native", MPI_INFO_NULL);

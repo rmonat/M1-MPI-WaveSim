@@ -8,17 +8,18 @@
 void print_usage()
 {
     fprintf(stderr, "Usage: ./main\n"
-	   "\t-step <nb>:\n\t\t0 sequential computations\n\t\t1 parallel computation\n\t\t2 parallel computations, walls\n\t\t3 parallel computations, sensors\n\t\t4 parallel computations, local speeds\n"
-	   "\t-i <input file>: path to the input file describing the environment\n"
-	   "\t-iteration <iteration number>: number of iterations to compute\n"
-	   "\t-dt <dt number>: value for dt, the size of a time-step\n"
-	   "\t-grid <p> <q>: dimensions of the processor gird\n\n"
-	   "Optional arguments:\n"
-	   "\t-lastdump <output path>: in that case, the matrix of values at the last step is written into <output path>\n"
-	   "\t-alldump <output path>: in that case, the matrix of values is dumped at each step in a format given by <output path>\n"
-	   "\t-sensor <output path>: in that case, sensors values are exported to <output path>\n\n"
-	   "Example:\n"
-	   "mpirun -np 32 ./main -step 3 -i toolbox/sample_type1.in -iterations 1000 -dt 0.1 -grid 4 8 -alldump output_%%03d.dump -sensor output_sensor.log\n");
+	    "\t-step <nb>:\n\t\t0 sequential computations\n\t\t1 parallel computation\n\t\t2 parallel computations, walls\n\t\t3 parallel computations, sensors\n\t\t4 parallel computations, local speeds\n"
+	    "\t-i <input file>: path to the input file describing the environment\n"
+	    "\t-iteration <iteration number>: number of iterations to compute\n"
+	    "\t-dt <dt number>: value for dt, the size of a time-step\n"
+	    "\t-grid <p> <q>: dimensions of the processor gird\n\n"
+	    "Optional arguments:\n"
+	    "\t-lastdump <output path>: in that case, the matrix of values at the last step is written into <output path>\n"
+	    "\t-alldump <output path>: in that case, the matrix of values is dumped at each step in a format given by <output path>\n"
+	    "\t-sensor <output path>: in that case, sensors values are exported to <output path>\n"
+	    "\t-frequency n: store only 1/n element in alldump\n"
+	    "Example:\n"
+	    "mpirun -np 32 ./main -step 3 -i toolbox/sample_type1.in -iterations 1000 -dt 0.1 -grid 4 8 -alldump output_%%03d.dump -sensor output_sensor.log\n");
     
 // TODO : et frprintf sur stderr en plus
 
@@ -29,6 +30,7 @@ void init_inst(inst *instance)
     instance->iteration = -1;
     instance->step = -1;
     instance->dt = 0;
+    instance->frequency = 1;
     instance->input_path = NULL;
     instance->lastdump = NULL;
     instance->alldump = NULL;
@@ -51,12 +53,13 @@ int parse_options(inst *instance, int argc, char **argv, int rank)
 	{"lastdump",   required_argument, 0,  'l' },
 	{"alldump",    required_argument, 0,  'a' },
 	{"sensor",     required_argument, 0,  'S' },
+	{"frequency",  required_argument, 0,  'f' },
         {0,           0,                 0,  0   }
     };
 
 
     int long_index = 0;
-    while ((opt = getopt_long_only(argc, argv,"s:i:t:d:g:l:a:S:",
+    while ((opt = getopt_long_only(argc, argv,"s:i:t:d:g:l:a:S:f:",
 			      long_options, &long_index )) != -1) {
         switch (opt) {
 	case 's' :
@@ -95,6 +98,9 @@ int parse_options(inst *instance, int argc, char **argv, int rank)
 	case 'S':
 	    instance->sensors = optarg;
 	    break;
+	case 'f':
+	    instance->frequency = atoi(optarg);
+	    break;
 	default:
 	    print_usage(); 
 	    exit(EXIT_FAILURE);
@@ -122,6 +128,8 @@ int parse_options(inst *instance, int argc, char **argv, int rank)
 	    fprintf(stderr, "\talldump: %s\n", instance->alldump);
 	if(instance->sensors != NULL)
 	    fprintf(stderr, "\tsensor: %s\n", instance->sensors);
+	if(instance->frequency != 1)
+	    fprintf(stderr, "\tfrequency: %d\n", instance->frequency);
     }
 #endif
 
@@ -151,6 +159,11 @@ int parse_options(inst *instance, int argc, char **argv, int rank)
     {
 	err = 1;
 	if(rank == 0) fprintf(stderr, "Error: the q-coordinate of the grid should be a positive integer\n");
+    }
+    if(instance->frequency < 1)
+    {
+	err = 1;
+	if(rank == 0) fprintf(stderr, "Error: the frequency should be a positive integer\n");
     }
 
     if(err == 1)
