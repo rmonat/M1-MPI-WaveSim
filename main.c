@@ -62,6 +62,15 @@ int main(int argc, char** argv)
 	// We start by reading the header of the file
 	MPI_File_open(comm,  instance.input_path, MPI_MODE_RDONLY, MPI_INFO_NULL, &input_file);
 	MPI_File_read_all(input_file, &type, 1, MPI_CHAR, MPI_STATUS_IGNORE);
+
+	if(type == 2)
+	{
+	    if (rank == 0) fprintf(stderr, "Error: type 2 files are not supported\n");
+	    MPI_Barrier(MPI_COMM_WORLD);
+	    MPI_Finalize();
+	    exit(EXIT_FAILURE);
+	}
+	
 	// we needed to swap the next 2 lines
 	MPI_File_read_all(input_file, &(global_grid.n), 1, MPI_UINT64_T, MPI_STATUS_IGNORE);
 	MPI_File_read_all(input_file, &(global_grid.m), 1, MPI_UINT64_T, MPI_STATUS_IGNORE);
@@ -69,7 +78,7 @@ int main(int argc, char** argv)
 
 #ifdef DEBUG
 	if(rank == 0)
-	    printf("n, m, v = %d %d %f\n", global_grid.n, global_grid.m, global_grid.v);
+	    printf("n, m, v = %zu %zu %f\n", global_grid.n, global_grid.m, global_grid.v);
 #endif
 
 	size_t nb_cells = global_grid.n * global_grid.m;
@@ -141,11 +150,12 @@ int main(int argc, char** argv)
 	// allocate the cell array we will use
 	cell **cells;
 	cells = malloc(2*sizeof(cell *));
-
+	double *sensors;
 	
 	cells[1] = calloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q),sizeof(cell));
 	cells[0] = calloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q),sizeof(cell));
-
+	sensors = calloc(global_grid.n/instance.p*global_grid.m/instance.q, sizeof(double));
+	
 	MPI_File_read_all(input_file, cells[0], 1, ematrix, MPI_STATUS_IGNORE);
 
 
@@ -167,7 +177,6 @@ int main(int argc, char** argv)
 	
 	int top, bot, left, right;
 	double sqspeed = global_grid.v * global_grid.v;
-	double ct = 0, cb = 0, cl = 0, cr = 0;
 
 	int curr = 0, next = 0;
 	char *alldump = malloc(256);
@@ -215,10 +224,18 @@ int main(int argc, char** argv)
 	    {
 		for(size_t j = 1; j < 1+local_ncols; j++)
 		{
-		    if(!(instance.step >= 2 && cells[next][j+i*(2+local_ncols)].type == 1))
+		    if(instance.step < 2 || cells[next][j+i*(2+local_ncols)].type != 1)
 		    {
+			// If walls we do not do anything
 			cells[next][j+i*(2+local_ncols)].u = cells[curr][j+i*(2+local_ncols)].u + (cells[curr][j+i*(2+local_ncols)].v * instance.dt);
 			cells[next][j+i*(2+local_ncols)].v = cells[curr][j+i*(2+local_ncols)].v + sqspeed * (cells[curr][j+(i+1)*(2+local_ncols)].u + cells[curr][j+(i-1)*(2+local_ncols)].u + cells[curr][(j+1) + i*(2+local_ncols)].u + cells[curr][(j-1) + i*(2+local_ncols)].u - (4 * cells[curr][j+i*(2+local_ncols)].u)) * instance.dt;
+
+			if(instance.step == 3 && cells[next][j+i*(2+local_ncols)].type == 2)
+			{
+			    // Case of sensors
+			    sensors[(j-1)+(i-1)*local_ncols] += cells[next][j+i*(2+local_ncols)].u * cells[next][j+i*(2+local_ncols)].u;
+			    printf("bli\n");
+			}
 		    }
 		    
 		}
@@ -250,8 +267,35 @@ int main(int argc, char** argv)
 
 	    MPI_File_write_all(last_file, &(cells[next][0].u), 1, d_rmatrix, MPI_STATUS_IGNORE);
 	    MPI_File_close(&last_file);
+	}
+
+	if(instance.step == 3 && instance.sensors != NULL)
+	{
+	    MPI_File sensor_file;
+	    MPI_File_open(comm, instance.sensors, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &sensor_file);
 
 
+//	    MPI_Datatype string;
+//	    MPI_Type_contiguous(1024, MPI_CHAR, &string); 
+//	    MPI_Type_commit(&string); 
+	    
+	    char text[1024];
+	    for(size_t i = 1; i < 1+local_nrows; i++)
+	    {
+		for(size_t j = 1; j < 1+local_ncols; j++)
+		{
+		    if(instance.step == 3 && cells[next][j+i*(2+local_ncols)].type == 2)
+		    {
+			memset(text,0,sizeof(text));
+			sprintf(text, "%zu %zu %f\n", (i-1)*coord[0]*global_grid.n/instance.p, (j-1)*coord[1]*global_grid.m/instance.q, sensors[(j-1)+(i-1)*local_ncols]);
+			MPI_File_write(sensor_file, text, strlen(text), MPI_CHAR, MPI_STATUS_IGNORE);
+		    }
+		    
+		}
+	    }
+	    
+
+	    MPI_File_close(&sensor_file);
 	}
 	
 

@@ -34,20 +34,12 @@ void dump_grid(char* filename, grid *g)
     size_t n = g->n;
     size_t m = g->m;
     
-//    fprintf(stderr, "\t\tn, m = %d %d\n", g->n, g->m);
     for(size_t i = 0; i < n; i++)
     {
 	for(size_t j = 0; j < m; j++)
 	{
 	    fwrite(&(g->data[i*m+j].u), sizeof(double), 1, fp);
-#ifdef DEBUG
-//	    fprintf(stderr, "%f", g->data[i*m+j].u);
-//	    TODO : danger, gérer les walls
-#endif
 	}
-#ifdef DEBUG
-//	fprintf(stderr, "\n");
-#endif
     }
 
     fclose(fp);
@@ -56,8 +48,6 @@ void dump_grid(char* filename, grid *g)
 
 void parse_file(char* filename, grid *g)
 {
-    // TODO : ET LES AUTRES STEP ?!
-
     FILE *fp;
     fp = fopen(filename, "rb");
     if(fp == NULL)
@@ -88,7 +78,7 @@ void parse_file(char* filename, grid *g)
 	    fread(&cell_type, sizeof(char), 1, fp);
 	    fread(&cell_value, sizeof(double), 1, fp);
 	    if(cell_type == 1)
-		printf("%d %d\n", i, j);
+		printf("%zu %zu\n", i, j);
 	    g->data[i*m+j].type = cell_type;
 	    g->data[i*m+j].u = cell_value;
 	    g->data[i*m+j].v = 0;

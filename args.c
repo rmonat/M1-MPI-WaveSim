@@ -52,7 +52,7 @@ int parse_options(inst *instance, int argc, char **argv, int rank)
 	{"grid",       required_argument, 0,  'g' },
 	{"lastdump",   required_argument, 0,  'l' },
 	{"alldump",    required_argument, 0,  'a' },
-	{"sensor",     required_argument, 0,  'S' },
+	{"sensor",     required_argument, 0,  'c' },
 	{"frequency",  required_argument, 0,  'f' },
         {0,           0,                 0,  0   }
     };
@@ -95,7 +95,7 @@ int parse_options(inst *instance, int argc, char **argv, int rank)
 	case 'a':
 	    instance->alldump = optarg;
 	    break;
-	case 'S':
+	case 'c':
 	    instance->sensors = optarg;
 	    break;
 	case 'f':
@@ -135,7 +135,7 @@ int parse_options(inst *instance, int argc, char **argv, int rank)
 
     int err = 0;
     // Check we have at least the required arguments.
-    if(!(instance->step >= 0 && instance->step <= 4))
+    if(instance->step < 0 || instance->step > 4)
     {
 	err = 1;
 	if(rank == 0) fprintf(stderr, "Error: step must be between 0 and 4\n");
