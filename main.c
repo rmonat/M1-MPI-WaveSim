@@ -143,8 +143,8 @@ int main(int argc, char** argv)
 	cells = malloc(2*sizeof(cell *));
 
 	
-	cells[1] = malloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q)*sizeof(cell));
-	cells[0] = malloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q)*sizeof(cell));
+	cells[1] = calloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q),sizeof(cell));
+	cells[0] = calloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q),sizeof(cell));
 
 	MPI_File_read_all(input_file, cells[0], 1, ematrix, MPI_STATUS_IGNORE);
 
@@ -165,8 +165,9 @@ int main(int argc, char** argv)
 	MPI_Type_commit(&l_col);
 
 	
-	int top, bot, left, right, t[2], b[2], r[2], l[2];
+	int top, bot, left, right;
 	double sqspeed = global_grid.v * global_grid.v;
+	double ct = 0, cb = 0, cl = 0, cr = 0;
 
 	int curr = 0, next = 0;
 	char *alldump = malloc(256);
@@ -214,8 +215,11 @@ int main(int argc, char** argv)
 	    {
 		for(size_t j = 1; j < 1+local_ncols; j++)
 		{
-		    cells[next][j+i*(2+local_ncols)].u = cells[curr][j+i*(2+local_ncols)].u + (cells[curr][j+i*(2+local_ncols)].v * instance.dt);
-		    cells[next][j+i*(2+local_ncols)].v = cells[curr][j+i*(2+local_ncols)].v + sqspeed * (cells[curr][j+(i+1)*(2+local_ncols)].u + cells[curr][j+(i-1)*(2+local_ncols)].u + cells[curr][(j+1) + i*(2+local_ncols)].u + cells[curr][(j-1) + i*(2+local_ncols)].u - (4 * cells[curr][j+i*(2+local_ncols)].u)) * instance.dt;
+		    if(!(instance.step >= 2 && cells[next][j+i*(2+local_ncols)].type == 1))
+		    {
+			cells[next][j+i*(2+local_ncols)].u = cells[curr][j+i*(2+local_ncols)].u + (cells[curr][j+i*(2+local_ncols)].v * instance.dt);
+			cells[next][j+i*(2+local_ncols)].v = cells[curr][j+i*(2+local_ncols)].v + sqspeed * (cells[curr][j+(i+1)*(2+local_ncols)].u + cells[curr][j+(i-1)*(2+local_ncols)].u + cells[curr][(j+1) + i*(2+local_ncols)].u + cells[curr][(j-1) + i*(2+local_ncols)].u - (4 * cells[curr][j+i*(2+local_ncols)].u)) * instance.dt;
+		    }
 		    
 		}
 	    }

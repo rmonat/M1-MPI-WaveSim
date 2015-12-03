@@ -89,7 +89,7 @@ void parse_file(char* filename, grid *g)
 	    fread(&cell_value, sizeof(double), 1, fp);
 	    if(cell_type == 1)
 		printf("%d %d\n", i, j);
-	    g->data[i*m+j].type = 1 - cell_type; // my definition, cells are 1, walls are 0
+	    g->data[i*m+j].type = cell_type;
 	    g->data[i*m+j].u = cell_value;
 	    g->data[i*m+j].v = 0;
 	}
