@@ -34,47 +34,59 @@ Let's study $y' = ay$, with $a \in \mathbb{R}$. Using Euler's approximation, we 
 
 \paragraph{Question 2a)} We need to update every cell of the grid, so we need to call $\delta$ on each cell of this grid: $N \times M$ applications of $\delta$ to compute $X^t$ from $X^{t-1}$. To compute $X^t$ from $X^0$, we need $t \times NM$ applications of $\delta$.
 
-\paragraph{Question 2b)} Suppose that we have a $p \times q$ 2D grid, and suppose also that $p \mid N$, $q \mid M$ for the sake of simplicity. Let $(i, j) \in \llbracket 0; p-1 \rrbracket \times \llbracket 0; q - 1 \rrbracket$. On the machine of coordinates $(i, j)$, we store the subgrid $\mathcal{G}_{i,j}$, of size $\frac{N}{p} \times \frac{M}{q}$, containing the following elements: $G_{k, l}$ with $(k, l) \in \llbracket i\frac{N}{p}; (i+1)\frac{N}{p}-1 \rrbracket \times \llbracket j\frac{M}{q}; (j+1)\frac{M}{q}-1 \rrbracket$. On each machine, we can localy update every element of the local grid, except the edges of the grid. To compute the edges of the grid, we need to get one edge of each grid $G_{i\pm1, j\pm1}$ (that is why we need communications). We will still compute the update of the edge cells on the local grid. We can write the algorithm in the following way, which is executed on each subgrid:
-\begin{itemize}
-\item Get the edges of the neighbours $G_{i\pm1, j\pm1}$ (and send the edges of the local grid to the neighbours requesting it).
-\item For each cell in the local grid, compute the updated value of the cell, and put it in a temporary grid $T_{i, j}$
-\item Assign $T_{i,j}$ to $G_{i,j}$
-\end{itemize}
+\paragraph{Question 2b)} Suppose that we have a $p \times q$ 2D grid, and suppose also that $p \mid N$, $q \mid M$ for the sake of simplicity. Let $(i, j) \in \llbracket 0; p-1 \rrbracket \times \llbracket 0; q - 1 \rrbracket$. On the machine of coordinates $(i, j)$, we store the subgrid $\mathcal{G}_{i,j}$, of size $\frac{N}{p} \times \frac{M}{q}$, containing the following elements: $G_{k, l}$ with $(k, l) \in \llbracket i\frac{N}{p}; (i+1)\frac{N}{p}-1 \rrbracket \times \llbracket j\frac{M}{q}; (j+1)\frac{M}{q}-1 \rrbracket$. On each machine, we can localy update every element of the local grid, except the edges of the grid. To compute the edges of the grid, we need to get one edge of each grid $G_{i\pm1, j\pm1}$ (that is why we need communications). We will still compute the update of the edge cells on the local grid. We call the inner grid the local grid without the edges, and the outer edges of a grid, the edges it needs to receive from other processors to be able to update every edge cell. We can write the algorithm in the following way, which is executed on each subgrid:
+\begin{enumerate}
+\item For each cell in the inner local grid, compute the updated value of the cell, and put it in a temporary grid $T$. \textbf{In parallel} get the outer edges (except the four corners) of the neighbours $G_{i\pm1, j\pm1}$ (and send the edges of the local grid to the neighbours requesting it). 
+\item For each cell (except the four corners) in the edges of the local grid, compute the updated value of the cell, and put it in the temporary grid. \textbf{In parallel} transmit the corners of a cell to the neighbor needing it (for example, if we are in (i, j) and receive from (i, j-1), we need to transmit to (i+1, j)), and receive the corners
+\item Update the values of the corner.
+\item Assign $T_{i,j}$ to $G_{i,j}$ (in fact, we can just use two grids, and update the good one using parity of the iteration number).
+\end{enumerate}
 
 \paragraph{Question 2c)}
-Let $d$ be the cost of the application of $\delta$. To update a local grid, there are $\frac{N}{p}\frac{M}{q}$ calls to $\delta$. We also need to send $2\frac{N}{p} + 2\frac{M}{q} + 4$ cases, and receive the same number. Thus, the communications costs are ???. Depends on whether we should really consider the $+4$. In that case, how to communicate with $G_{i-1, j-1}$ for example ?\\
-NB : we can do in parallel the computations of the inner part of the grid, and the communications with other nodes. And then update the edges.
+Let $d$ be the cost of the application of $\delta$. We assume we have a 4-ports, full-duplex links. We analyse the cost of each step:
+\begin{itemize}
+\item Step 1: there are $\frac{(N-2)(M-2)}{pq}$ applications of $\delta$. In the meantime, we send/receive 2 rows and 2 columns of size $\frac{N}{p}$ and $\frac{M}{q}$ respectively. The cost of communications is $L + \max(\frac{N}{p}, \frac{M}{q}) \cdot b$. The cost of this step is $\max(d \cdot \frac{(N-1)(M-1)}{pq}, L + \max(\frac{N}{p}, \frac{M}{q}) \cdot b)$.
+\item Step 2: there are $2 \cdot (\frac{N}{p} + \frac{M}{q})$ applications of $\delta$. In the meantime, we send/receive 4 elements, the communication cost is $L + b$. The cost is $\max(2d \cdot (frac{N}{p} + \frac{M}{q}), L + b)$
+\item Step 3: there are $4$ applications of $\delta$.
+\item We forget about step 4, as we can use two grids and never do any copy.
+\end{itemize}
+The cost is $$pq \cdot \left [ \max \left ( d \cdot \frac{(N-2)(M-2)}{pq}, L + \max(\frac{N}{p}, \frac{M}{q}) \cdot b \right )  + \max \left ( 2d \cdot (\frac{N}{p} + \frac{M}{q} \right ), L + b) + 4d \right ]$$ at each iteration of the computation.\\
+The communications costs are $pq \cdot \left [ L + \max(\frac{N}{p}, \frac{M}{q}) + L + b \right ]$ in the 4-port model. The computation costs are $d \cdot NM$.
 
-\paragraph{Question 2d)} ? A bit less in the communicatin costs.
+\paragraph{Question 2d)} This question has two answers, depending on what grid is considered:
+\begin{itemize}
+\item If the grid of the automaton is finite and bounded, there is a bit less communications, but this does not change anything in the 4-ports model.
+\item If the grid of processors is bounded (it is necessarily finite...) (and if the grid of the automaton is still a torus), then the grid being on the edges should send at most two of their local automaton grid edges to the other edges. This would cost $q\cdot(L + \frac{N}{p}b) + p\cdot(L+frac{M}{q}b)$. The final communication costs are $$pq \cdot \left [ 2L + \max(\frac{N-2}{p}, \frac{M-2}{q}) + b + \max \left ( q\cdot(L + \frac{N}{p}b) + p\cdot(L+\frac{M}{q}b) \right ) \right ]$$
+\end{itemize}
+
 
 \section{Laplace operator and convolution}
 
-\paragraph{Question 3a)} We consider the following cellular automaton: $\mathcal{A} = (2, \mathbb{Z}^2, 1, \delta)$, with:
+\paragraph{Question 3a)} We consider the following cellular automaton: $\mathcal{A} = (2, \mathbb{R}^2, 1, \delta)$, with:
 
 \begin{eqnarray*}
 \delta : \left \{ \begin{array}{c c l }
-  \mathbb{Z}^2 & \longrightarrow & \mathbb{Z}^2 \\
+  \mathbb{R}^2 & \longrightarrow & \mathbb{R}^2 \\
   u^{t+1}_{i,j}\ \pmb{,} \ u^{_{'} t+1}_{i,j} & \longmapsto & u^{t}_{i,j} + u^{_{'} t}_{i,j}\ \pmb{,} \ u^{_{'} t}_{i,j} + v^2 \cdot (u^t_{i+1,j} + u^t_{i-1, j} + u^t_{i, j+1} + u^t_{i, j-1} - 4 u^t_{i, j})\\
   \end{array} \right .
 \end{eqnarray*}
 
-NB: $\mathbb{Z}$ should be replaced by the set of C doubles...
 
 \section{Performance evaluation}
 
-\paragraph{Question 4a)} Simgrid or real computations ?
+\paragraph{Question 4a)} One simple porotocol to evaluate the scalability of my program is the following: pick a large enough example, and then use Simgrid to see how the communication costs evolve when augmenting the number of processors.
 
-\paragraph{Question 4b)} Good question. We could see what wins in the end between communication and computation.
+\paragraph{Question 4b)} As usual, we see that at some point, there are too many processors, and the communications are then hindering the computations.
 
 
 \section{Walls}
 
-\paragraph{Question 5a)} We should transform $\mathcal{Q}$ into $\{0, 1\} \times \mathbb{Z}^2$, to know if a cell is active or is a wall (0 meaning that the cell is a wall). We define two auxiliary functions f and f', and then update $\delta$: 
+\paragraph{Question 5a)} We should transform $\mathcal{Q}$ into $\{0, 1\} \times \mathbb{R}^2$, to know if a cell is active or is a wall (0 meaning that the cell is a wall). We define two auxiliary functions f and f', and then update $\delta$: 
 
 
 \begin{eqnarray*}
 f : \left \{ \begin{array}{c c l }
-  \mathcal{Q} & \longrightarrow & \mathbb{Z} \\
+  \mathcal{Q} & \longrightarrow & \mathbb{R} \\
   s \ \pmb{,} \ u\ \pmb{,} \ u' & \longmapsto & \mathbbm{1}_{\mathbb{N}^*}(s) \cdot u
   \end{array} \right .
 \end{eqnarray*}
@@ -82,7 +94,7 @@ f : \left \{ \begin{array}{c c l }
 
 \begin{eqnarray*}
 f' : \left \{ \begin{array}{c c l }
-  \mathcal{Q} & \longrightarrow & \mathbb{Z} \\
+  \mathcal{Q} & \longrightarrow & \mathbb{R} \\
   s \ \pmb{,} \ u\ \pmb{,} \ u' & \longmapsto & \mathbbm{1}_{\mathbb{N}^*}(s) \cdot u'
   \end{array} \right .
 \end{eqnarray*}
@@ -100,7 +112,7 @@ f' : \left \{ \begin{array}{c c l }
 
 \section{Sensors}
 
-\paragraph{Question 6a)} We suppose that sensors are never walls (it would not be interesting at all, as the record variable would always be 0). We also suppose that we record only $u_{i,j}^2$ and not $q^2$ for some $q \in \mathcal{Q}$. So, we just need to change $\mathcal{Q}$ into $\{0,1,2\} \times \mathbb{Z}^2 \times \mathbb{N}$, where 0 means a wall, 1 means a normal cell, and 2 means a sensor. We need to update $\delta$:
+\paragraph{Question 6a)} We suppose that sensors are never walls (it would not be interesting at all, as the record variable would always be 0). We also suppose that we record only $u_{i,j}^2$ and not $q^2$ for some $q \in \mathcal{Q}$. So, we just need to change $\mathcal{Q}$ into $\{0,1,2\} \times \mathbb{R}^2 \times \mathbb{R}$, where 0 means a wall, 1 means a normal cell, and 2 means a sensor. We need to update $\delta$:
 
 \begin{eqnarray*}
 \delta : \left \{ \begin{array}{c c l }
@@ -116,11 +128,13 @@ f' : \left \{ \begin{array}{c c l }
 \end{eqnarray*}
 
 
-\paragraph{Question 7a)} We need to change $\mathcal{Q}$ into $\{0,1,2\} \times \mathbb{Z}^2 \times \mathbb{N} \times \mathbb{R}$, the last argument being the local speed. In $\delta$, we just update $v$ into $v_{i,j}$.
+\section{Local environment characteristics}
 
-%% TODO : Un peu la flemme de refaire tout ce delta moche juste pour la vitesse
+\paragraph{Question 7a)} We need to change $\mathcal{Q}$ into $\{0,1,2\} \times \mathbb{R}^2 \times \mathbb{R} \times \mathbb{R}$, the last argument being the local speed. In $\delta$, we just update $v$ into $v_{i,j}$.
 
-\section{(Experimental) Science}
+\paragraph{Question 7c)} We need to change a bit our implemntation, but nothing really important. 
+
+\section{Experimental Science}
 
 \paragraph{Question 8a)} We need to check if this is close to reality or not. We could try to see if the propagation is correct, and then try to observe more complexe phenomenon, like interferences.
 
