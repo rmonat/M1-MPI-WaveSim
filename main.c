@@ -55,12 +55,13 @@ int main(int argc, char** argv)
 
 
 	grid global_grid;
-	char type = 0;
 
+	
+	char type = 0;
 	MPI_File input_file;
 
 	// We start by reading the header of the file
-	MPI_File_open(comm,  instance.input_path, MPI_MODE_RDONLY, MPI_INFO_NULL, &input_file);
+	MPI_File_open(comm, instance.input_path, MPI_MODE_RDONLY, MPI_INFO_NULL, &input_file);
 	MPI_File_read_all(input_file, &type, 1, MPI_CHAR, MPI_STATUS_IGNORE);
 
 	if(type == 2)
