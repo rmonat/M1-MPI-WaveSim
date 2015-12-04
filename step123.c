@@ -5,13 +5,14 @@
 
 #include "automaton.h"
 #include "args.h"
-#include "step0.h"
 
 int step123(inst i, int r, int s)
 {
     inst instance = i;
     int rank = r;
     int size = s;
+
+    // Creation of the 2D torus we will then use
     MPI_Comm comm;
     int dim[2] = {instance.p, instance.q};
     int period[2] = {1, 1};

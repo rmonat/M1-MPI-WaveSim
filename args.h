@@ -1,3 +1,6 @@
+#ifndef ARGS
+#define ARGS
+
 typedef struct inst
 {
     int iteration;
@@ -17,3 +20,5 @@ inst;
 void print_usage();
 void init_inst(inst *instance);
 int parse_options(inst *instance, int argc, char **argv, int rank);
+
+#endif
