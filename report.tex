@@ -124,4 +124,8 @@ f' : \left \{ \begin{array}{c c l }
 
 \paragraph{Question 8a)} We need to check if this is close to reality or not. We could try to see if the propagation is correct, and then try to observe more complexe phenomenon, like interferences.
 
+\section{Notes on the implementation}
+
+I have 3 different implementations: one concerning step 0, one concerning steps 1, 2 and 3 and one concerning step 4. Although step123.c and step4.c are really similar, I prefered to create distinct files. I could have structured a lot more the code, but a lot of functions would have had a lot of arguments. In steps 1 and higher, all the I/Os are done in parallel using MPI functions, except the output of sensor values. One last remark: sensor values in the file are not sorted by any order, as it was not asked in the subject.
+
 \end{document}
