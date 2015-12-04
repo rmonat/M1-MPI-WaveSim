@@ -57,6 +57,15 @@ int step4(inst i, int r, int s)
 	printf("n, m = %zu %zu\n", global_grid.n, global_grid.m);
 #endif
 
+
+    if(!(global_grid.n % instance.p == 0 && global_grid.m % instance.q == 0))
+    {
+	if(rank == 0)
+	    fprintf(stderr, "Error: please choose the grid parameters so they divide the grid of the cellular automaton. For example %zu %zu\n", instance.p + (global_grid.n % instance.p), instance.q + (global_grid.m % instance.q));
+	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Finalize();
+	exit(EXIT_FAILURE);
+    }
     size_t nb_cells = global_grid.n * global_grid.m;
 
     // Now we create the data structures.
@@ -143,27 +152,23 @@ int step4(inst i, int r, int s)
 #endif
 
     MPI_Datatype l_row; // local row
-    MPI_Type_contiguous(local_ncols, a_cell, &l_row);
+    MPI_Type_contiguous(local_ncols, d_type, &l_row);
     MPI_Type_commit(&l_row);
 
     MPI_Datatype l_col; // local column. A bit trickier, we need a type_vector.
-    MPI_Type_vector(local_nrows, 1, local_ncols+2, a_cell, &l_col);
+    MPI_Type_vector(local_nrows, 1, local_ncols+2, d_type, &l_col);
     MPI_Type_commit(&l_col);
 
 	
     int top, bot, left, right;
-    double sqspeed = global_grid.v * global_grid.v;
+    double sqspeed = 0;
 
     int curr = 0, next = 0;
     char *alldump = malloc(256);
 
     for(int s = 0; s < instance.iteration; s++)
     {
-	//  TODO : SYNCHRONISER MIEUX ? Ou peut être même pas besoin de synchroniser en fait
-	//MPI_Barrier(MPI_COMM_WORLD);
-
-	// on va communiquer dans cell[curr]...
-	// et mettre à jour dans cell[next]...
+	// We will update cell[next], and use the data of cell[curr]
 	curr = s % 2;
 	next = (s+1) % 2;
 	    
@@ -176,21 +181,21 @@ int step4(inst i, int r, int s)
 
 	// Then we need to update the edges of our local grid
 	// Update top and bottom rows
-	MPI_Sendrecv(&(cells[curr][1*(local_ncols+2)+1]),               1, l_row, top, 0,
-		     &(cells[curr][(local_ncols+2)*(local_nrows+1)+1]), 1, l_row, bot, 0,
+	MPI_Sendrecv(&(cells[curr][1*(local_ncols+2)+1].u),               1, l_row, top, 0,
+		     &(cells[curr][(local_ncols+2)*(local_nrows+1)+1].u), 1, l_row, bot, 0,
 		     comm, MPI_STATUS_IGNORE);
 	
-	MPI_Sendrecv(&(cells[curr][(local_ncols+2)*(local_nrows)+1]),   1, l_row, bot, 0,
-		     &(cells[curr][1]),                                 1, l_row, top, 0,
+	MPI_Sendrecv(&(cells[curr][(local_ncols+2)*(local_nrows)+1].u),   1, l_row, bot, 0,
+		     &(cells[curr][1].u),                                 1, l_row, top, 0,
 		     comm, MPI_STATUS_IGNORE);
 	
 	// Update left and right
-	MPI_Sendrecv(&(cells[curr][1*(local_ncols+2)+1]),             1, l_col, left,  0,
-		     &(cells[curr][1*(local_ncols+2)+local_ncols+1]), 1, l_col, right, 0,
+	MPI_Sendrecv(&(cells[curr][1*(local_ncols+2)+1].u),             1, l_col, left,  0,
+		     &(cells[curr][1*(local_ncols+2)+local_ncols+1].u), 1, l_col, right, 0,
 		     comm, MPI_STATUS_IGNORE);
 
-	MPI_Sendrecv(&(cells[curr][1*(local_ncols+2)+local_ncols]),   1, l_col, right, 0,
-		     &(cells[curr][1*(local_ncols+2)]),               1, l_col, left,  0,
+	MPI_Sendrecv(&(cells[curr][1*(local_ncols+2)+local_ncols].u),   1, l_col, right, 0,
+		     &(cells[curr][1*(local_ncols+2)].u),               1, l_col, left,  0,
 		     comm, MPI_STATUS_IGNORE);
 
 
