@@ -42,8 +42,10 @@ int main(int argc, char** argv)
 	    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
 	}
 
-	step123(instance, rank, size);
-
+	if(instance.step <= 3)
+	    step123(instance, rank, size);
+	else if(instance.step == 4)
+	    step4(instance, rank, size);
 	
 	MPI_Finalize();
     }
