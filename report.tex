@@ -21,6 +21,8 @@
 
 \maketitle
 
+\tableofcontents
+
 \section{Euler's approximation of differential equations}
 
 \paragraph{Question 1a)}
@@ -138,10 +140,11 @@ f' : \left \{ \begin{array}{c c l }
 
 \section{Experimental Science}
 
-\paragraph{Question 8a)} We need to check if this is close to reality or not. We could try to see if the propagation is correct, and then try to observe more complex phenomena, like interferences. Propagations look realistic if the time interval $dt$ is small enough (see sample\_type1.mp4). Concerning interferences, I implemented a program generating something roughly like Young's experiment. Interferences are quite realistic, see the young.mp4 file for example.
+\paragraph{Question 8a)} We need to check if this is close to reality or not. We could try to see if the propagation is correct, and then try to observe more complex phenomena, like interferences. Propagations look realistic if the time interval $dt$ is small enough (see results/sample\_type1\_*.mp4). Concerning interferences, I implemented a program generating something roughly like Young's experiment. Interferences are quite realistic, see the results/young.mp4 file for example.
 
 \section{Notes on the implementation}
 
 I have 3 different implementations: one concerning step 0, one concerning steps 1, 2 and 3 and one concerning step 4. Although step123.c and step4.c are really similar, I prefered to create distinct files. I could have structured a lot more the code, but a lot of functions would have had too much arguments for this basic project. In steps 1 and higher, all the I/Os are done in parallel using MPI functions, except the output of sensor values. It would have been quite difficult and not that interesting to handle the cases where we do not have $p \mid N$ and $q \mid M$, so they are not supported (in particular, MPI\_Type\_create\_subarray forces the divisibility condition). I also added a new parameter called frequency, to store only one part of all the dump files (thus reducing the writing time, and the time to generate the video). One last remark: sensor values in the file are not sorted by any order, as it was not asked in the subject.
+\par Please try \textit{make demo}.
 
 \end{document}
