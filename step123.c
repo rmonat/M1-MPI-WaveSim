@@ -245,6 +245,10 @@ int step123(inst i, int r, int s)
 	MPI_File sensor_file;
 	MPI_File_open(comm, instance.sensors, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &sensor_file);
 
+	MPI_Datatype string;
+	MPI_Type_contiguous(1024, MPI_CHAR, &string); // 1024*MPICHAR isn't sufficient, we need to state that the data is contiguouly stored
+	MPI_Type_commit(&string);
+	
 	char text[1024];
 	for(size_t i = 1; i < 1+local_nrows; i++)
 	{
@@ -254,13 +258,13 @@ int step123(inst i, int r, int s)
 		{
 		    memset(text,0,sizeof(text));
 		    sprintf(text, "%zu %zu %f\r\n", (i-1)+coord[0]*global_grid.n/instance.p, (j-1)+coord[1]*global_grid.m/instance.q, sensors[(j-1)+(i-1)*local_ncols]);
-		    MPI_File_write(sensor_file, text, 1+strlen(text), MPI_CHAR, MPI_STATUS_IGNORE);
+		    MPI_File_write(sensor_file, text, 1, string, MPI_STATUS_IGNORE);
 		}
 		    
 	    }
 	}
 
-
+	MPI_Type_free(&string);
 	MPI_File_close(&sensor_file);
     }
 	
