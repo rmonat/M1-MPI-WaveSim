@@ -48,3 +48,11 @@ dist: clean latex
 	cp LICENSE monat/
 	cp -r results monat/
 	tar -cvzf monat.tar.gz monat
+
+demo: main
+	@echo "\t\033[0;31msample 1 without walls\033[0m"
+	mpirun -n 4 ./main -step 1 -iteration 100000 -dt 0.005 -grid 2 2 -i ./toolbox/sample_type1.in -lastdump res.dump
+	./toolbox/viewer.py -i res.dump -f show -s 128 256
+	@echo "\t\033[0;31msample 1 now with walls\033[0m"
+	mpirun -n 4 ./main -step 2 -iteration 100000 -dt 0.005 -grid 2 2 -i ./toolbox/sample_type1.in -lastdump res_walls.dump
+	./toolbox/viewer.py -i res_walls.dump -f show -s 128 256
