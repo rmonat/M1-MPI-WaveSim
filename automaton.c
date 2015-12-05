@@ -59,10 +59,8 @@ void parse_file(char* filename, grid *g)
     size_t n;
     size_t m;
     double v;
-    fread(&test, sizeof(char), 1, fp);
-    fread(&n, sizeof(size_t), 1, fp);
-    fread(&m, sizeof(size_t), 1, fp);
-    fread(&v, sizeof(double), 1, fp);
+    if(fread(&test, sizeof(char), 1, fp) != 1 || fread(&n, sizeof(size_t), 1, fp) != 1 || fread(&m, sizeof(size_t), 1, fp) != 1 || fread(&v, sizeof(double), 1, fp) != 1)
+	exit(EXIT_FAILURE);
 
     char cell_type;
     double cell_value;
@@ -75,10 +73,10 @@ void parse_file(char* filename, grid *g)
     for(size_t i = 0; i < n; i++)
 	for(size_t j = 0; j < m; j++)
 	{
-	    fread(&cell_type, sizeof(char), 1, fp);
-	    fread(&cell_value, sizeof(double), 1, fp);
-	    if(cell_type == 1)
-		printf("%zu %zu\n", i, j);
+	    if(fread(&cell_type, sizeof(char), 1, fp) != 1 || fread(&cell_value, sizeof(double), 1, fp) != 1)
+		exit(EXIT_FAILURE);
+//	    if(cell_type == 1)
+//		printf("%zu %zu\n", i, j);
 	    g->data[i*m+j].type = cell_type;
 	    g->data[i*m+j].u = cell_value;
 	    g->data[i*m+j].v = 0;
