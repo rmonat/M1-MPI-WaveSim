@@ -216,7 +216,6 @@ int step4(inst i, int r, int s)
 		    {
 			// Case of sensors
 			sensors[(j-1)+(i-1)*local_ncols] += cells[next][j+i*(2+local_ncols)].u * cells[next][j+i*(2+local_ncols)].u;
-			printf("bli\n");
 		    }
 		}
 		    
@@ -269,7 +268,7 @@ int step4(inst i, int r, int s)
 		if(instance.step == 3 && cells[next][j+i*(2+local_ncols)].type == 2)
 		{
 		    memset(text,0,sizeof(text));
-		    sprintf(text, "%zu %zu %f\n", (i-1)*coord[0]*global_grid.n/instance.p, (j-1)*coord[1]*global_grid.m/instance.q, sensors[(j-1)+(i-1)*local_ncols]);
+		    sprintf(text, "%zu %zu %f\r\n", (i-1)+coord[0]*global_grid.n/instance.p, (j-1)+coord[1]*global_grid.m/instance.q, sensors[(j-1)+(i-1)*local_ncols]);
 		    MPI_File_write(sensor_file, text, strlen(text), MPI_CHAR, MPI_STATUS_IGNORE);
 		}
 		    
