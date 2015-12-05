@@ -49,10 +49,14 @@ dist: clean latex
 	cp -r results monat/
 	tar -cvzf monat.tar.gz monat
 
-demo: main
+demo: main young
 	@echo "\t\033[0;31msample 1 without walls\033[0m"
-	mpirun -n 4 ./main -step 1 -iteration 100000 -dt 0.005 -grid 2 2 -i ./toolbox/sample_type1.in -lastdump res.dump
+	mpirun -np 4 ./main -step 1 -iteration 100000 -dt 0.005 -grid 2 2 -i ./toolbox/sample_type1.in -lastdump res.dump
 	./toolbox/viewer.py -i res.dump -f show -s 128 256
 	@echo "\t\033[0;31msample 1 now with walls\033[0m"
-	mpirun -n 4 ./main -step 2 -iteration 100000 -dt 0.005 -grid 2 2 -i ./toolbox/sample_type1.in -lastdump res_walls.dump
+	mpirun -np 4 ./main -step 2 -iteration 100000 -dt 0.005 -grid 2 2 -i ./toolbox/sample_type1.in -lastdump res_walls.dump
 	./toolbox/viewer.py -i res_walls.dump -f show -s 128 256
+	@echo "\t\033[0;31myoung interferences\nNB: the important place to look at is in the middle\033[0m"
+	./young
+	mpirun -np 4 ./main -i young.in -step 3 -iterations 200000 -dt 0.005 -grid 2 2 -sensor bla.log -lastdump young.dump
+	./toolbox/viewer.py -i young.dump -f show -s 256 768
