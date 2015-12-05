@@ -10,6 +10,7 @@
 \usepackage{stmaryrd}
 \usepackage{amsmath}
 \usepackage{bbm}
+\usepackage{graphicx}
 \usepackage{url}
 \usepackage[english]{babel}
 
@@ -74,9 +75,13 @@ The communications costs are $pq \cdot \left [ L + \max(\frac{N}{p}, \frac{M}{q}
 
 \section{Performance evaluation}
 
-\paragraph{Question 4a)} One simple porotocol to evaluate the scalability of my program is the following: pick a large enough example, and then use Simgrid to see how the communication costs evolve when augmenting the number of processors.
+\paragraph{Question 4a)} One simple porotocol to evaluate the scalability of my program is the following: pick a large enough example, and then use Simgrid to see how the communication costs evolve when augmenting the number of processors. However, Simgrid does not supports MPI IOs for now. It would have taken too much time to try to execute MPI programs over a lot of computers, that is why only present a plot with at most 12 processors.
 
-\paragraph{Question 4b)} As usual, we see that at some point, there are too many processors, and the communications are then hindering the computations.
+\paragraph{Question 4b)} As usual, we see that at some point, there are too many processors, and the communications are then hindering the computations. Here, the number of CPUs is quite limited, because I cannot use Simgrid over a program using parallel I/Os. Below are the results using a 4-core/8-thread CPU, on $10^6$ iterations.
+
+\begin{center}
+  \includegraphics[scale=0.8]{perfs.png}
+\end{center}
 
 
 \section{Walls}
