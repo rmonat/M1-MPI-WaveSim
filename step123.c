@@ -282,5 +282,4 @@ int step123(inst i, int r, int s)
     MPI_Type_free(&d_rmatrix);
     MPI_Type_free(&l_row);
     MPI_Type_free(&l_col);
-    MPI_Type_free(&string);
 }

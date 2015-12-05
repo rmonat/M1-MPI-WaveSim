@@ -1,6 +1,7 @@
 CC = mpicc
 GCC = gcc
-CFLAGS = -Wall -Wextra -O3
+SCC = smpicc -pipe -march=native
+CFLAGS = -Wall -Wextra -O3 -std=c99
 DFLAGS = -D DEBUG -g
 RM = rm -rf
 SRC = main.c automaton.c args.c step0.c step123.c step4.c
@@ -20,6 +21,10 @@ main: $(OBJ)
 
 main.debug: $(OBJ_DEBUG)
 	$(CC) -o $@ $^ $(CFLAGS) $(DFLAGS)
+
+main.sim: $(OBJ)
+	$(SCC) -o $@ $^ $(CFLAGS)
+
 
 young.o: young.c
 	$(GCC) -c -o $@ $< $(CFLAGS)

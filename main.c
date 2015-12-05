@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 // TODO : iteration et steps plutôt des unsigned int
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,7 @@
 #include "args.h"
 #include "step0.h"
 #include "step123.h"
+#include "step4.h"
 
 int main(int argc, char** argv)
 {
@@ -15,6 +17,10 @@ int main(int argc, char** argv)
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+#ifdef DEBUG
+    fprintf(stderr, "Launched on %d procs\n", size);
+#endif
 
     inst instance;
     if(parse_options(&instance, argc, argv, rank) == 1)
@@ -37,7 +43,7 @@ int main(int argc, char** argv)
     {
 	if(size != instance.p * instance.q && rank == 0)
 	{
-	    fprintf(stderr, "Error: there should be %d procs", (instance.p * instance.q));
+	    fprintf(stderr, "Error: there should be %d procs and not %d\n", (instance.p * instance.q), size);
 	    print_usage();
 	    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
 	}
