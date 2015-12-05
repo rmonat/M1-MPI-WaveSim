@@ -41,8 +41,10 @@ clean:
 
 dist: clean latex
 	mkdir -p monat/
+	cp young.c monat/
 	cp $(SRC) monat/
 	cp $(DEPS) monat/
+	cp -r toolbox/ monat/
 	cp report.pdf monat/
 	cp Makefile monat/
 	cp LICENSE monat/
