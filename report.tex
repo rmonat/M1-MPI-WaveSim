@@ -1,6 +1,3 @@
-%% TODO : questions
-%% TODO : euh, problème de cohérence. Comme v doit etre réel, ça serait bien de passer tout les état en réel et pas des entiers...
-
 \documentclass[a4paper,12pt]{article}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -54,7 +51,7 @@ Let $d$ be the cost of the application of $\delta$. We assume we have a 4-ports,
 The cost is $$pq \cdot \left [ \max \left ( d \cdot \frac{(N-2)(M-2)}{pq}, L + \max(\frac{N}{p}, \frac{M}{q}) \cdot b \right )  + \max \left ( 2d \cdot (\frac{N}{p} + \frac{M}{q} \right ), L + b) + 4d \right ]$$ at each iteration of the computation.\\
 The communications costs are $pq \cdot \left [ L + \max(\frac{N}{p}, \frac{M}{q}) + L + b \right ]$ in the 4-port model. The computation costs are $d \cdot NM$.
 
-\paragraph{Question 2d)} This question has two answers, depending on what grid is considered:
+\paragraph{Question 2d)} This question has two answers, depending on which grid is considered:
 \begin{itemize}
 \item If the grid of the automaton is finite and bounded, there is a bit less communications, but this does not change anything in the 4-ports model.
 \item If the grid of processors is bounded (it is necessarily finite...) (and if the grid of the automaton is still a torus), then the grid being on the edges should send at most two of their local automaton grid edges to the other edges. This would cost $q\cdot(L + \frac{N}{p}b) + p\cdot(L+frac{M}{q}b)$. The final communication costs are $$pq \cdot \left [ 2L + \max(\frac{N-2}{p}, \frac{M-2}{q}) + b + \max \left ( q\cdot(L + \frac{N}{p}b) + p\cdot(L+\frac{M}{q}b) \right ) \right ]$$
@@ -75,12 +72,12 @@ The communications costs are $pq \cdot \left [ L + \max(\frac{N}{p}, \frac{M}{q}
 
 \section{Performance evaluation}
 
-\paragraph{Question 4a)} One simple porotocol to evaluate the scalability of my program is the following: pick a large enough example, and then use Simgrid to see how the communication costs evolve when augmenting the number of processors. However, Simgrid does not supports MPI IOs for now. It would have taken too much time to try to execute MPI programs over a lot of computers, that is why only present a plot with at most 12 processors.
+\paragraph{Question 4a)} One simple porotocol to evaluate the scalability of my program is the following: pick a large enough example, and then use Simgrid to see how the communication costs evolve when augmenting the number of processors. However, Simgrid does not supports MPI IOs for now. It would have taken too much time to try to execute MPI programs over a lot of computers, that is why only present a plot with at most 8 processors.
 
-\paragraph{Question 4b)} As usual, we see that at some point, there are too many processors, and the communications are then hindering the computations. Here, the number of CPUs is quite limited, because I cannot use Simgrid over a program using parallel I/Os. Below are the results using a 4-core/8-thread CPU, on $10^6$ iterations.
+\paragraph{Question 4b)} As usual, we see that at some point, there are too many processors, and the communications are then hindering the computations. Here, the number of CPUs is quite limited, because I cannot use Simgrid over a program using parallel I/Os. Below are the results using a 4-core/8-thread Intel Core i7 CPU, on $10^6$ iterations. The time is in seconds.
 
 \begin{center}
-  \includegraphics[scale=0.8]{perfs.png}
+  \includegraphics[scale=0.8]{results/perfs.png}
 \end{center}
 
 
@@ -145,6 +142,6 @@ f' : \left \{ \begin{array}{c c l }
 
 \section{Notes on the implementation}
 
-I have 3 different implementations: one concerning step 0, one concerning steps 1, 2 and 3 and one concerning step 4. Although step123.c and step4.c are really similar, I prefered to create distinct files. I could have structured a lot more the code, but a lot of functions would have had too much arguments for this basic project. In steps 1 and higher, all the I/Os are done in parallel using MPI functions, except the output of sensor values. It would have been quite difficult and not that interesting to handle the cases where we do not have $p \div N$ and $q \div M$, so they are not supported. I also added a new parameter called frequency, to store only one part of all the dump files (thus reducing the writing time, and the time to generate the video). One last remark: sensor values in the file are not sorted by any order, as it was not asked in the subject.
+I have 3 different implementations: one concerning step 0, one concerning steps 1, 2 and 3 and one concerning step 4. Although step123.c and step4.c are really similar, I prefered to create distinct files. I could have structured a lot more the code, but a lot of functions would have had too much arguments for this basic project. In steps 1 and higher, all the I/Os are done in parallel using MPI functions, except the output of sensor values. It would have been quite difficult and not that interesting to handle the cases where we do not have $p \mid N$ and $q \mid M$, so they are not supported (in particular, MPI\_Type\_create\_subarray forces the divisibility condition). I also added a new parameter called frequency, to store only one part of all the dump files (thus reducing the writing time, and the time to generate the video). One last remark: sensor values in the file are not sorted by any order, as it was not asked in the subject.
 
 \end{document}
