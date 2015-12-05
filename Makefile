@@ -37,4 +37,14 @@ latex:
 	pdflatex report.tex
 
 clean:
-	$(RM) *.o *.aux *.log *.out *.o.debug
+	$(RM) *.o *.aux *.log *.out *.o.debug monat/ monat.tar.gz
+
+dist: clean latex
+	mkdir -p monat/
+	cp $(SRC) monat/
+	cp $(DEPS) monat/
+	cp report.pdf monat/
+	cp Makefile monat/
+	cp LICENSE monat/
+	cp -r results monat/
+	tar -cvzf monat.tar.gz monat
