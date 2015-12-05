@@ -1,4 +1,5 @@
 CC = mpicc
+GCC = gcc
 CFLAGS = -Wall -Wextra -O3
 DFLAGS = -D DEBUG -g
 RM = rm -rf
@@ -10,13 +11,22 @@ OBJ_DEBUG = main.o.debug automaton.o.debug args.o.debug step0.o.debug step123.o.
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-main: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS)
 %.o.debug: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(DFLAGS)
 
+
+main: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS)
+
 main.debug: $(OBJ_DEBUG)
 	$(CC) -o $@ $^ $(CFLAGS) $(DFLAGS)
+
+young.o: young.c
+	$(GCC) -c -o $@ $< $(CFLAGS)
+
+young: young.o
+	$(GCC) -o $@ $^ $(CFLAGS)
+
 
 latex:
 	pdflatex report.tex
