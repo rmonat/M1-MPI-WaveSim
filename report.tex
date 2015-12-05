@@ -67,7 +67,7 @@ The communications costs are $pq \cdot \left [ L + \max(\frac{N}{p}, \frac{M}{q}
 \begin{eqnarray*}
 \delta : \left \{ \begin{array}{c c l }
   \mathbb{R}^2 & \longrightarrow & \mathbb{R}^2 \\
-  u^{t+1}_{i,j}\ \pmb{,} \ u^{_{'} t+1}_{i,j} & \longmapsto & u^{t}_{i,j} + u^{_{'} t}_{i,j}\ \pmb{,} \ u^{_{'} t}_{i,j} + v^2 \cdot (u^t_{i+1,j} + u^t_{i-1, j} + u^t_{i, j+1} + u^t_{i, j-1} - 4 u^t_{i, j})\\
+  u^{t}_{i,j}\ \pmb{,} \ u^{_{'} t}_{i,j} & \longmapsto & u^{t}_{i,j} + dt \cdot u^{_{'} t}_{i,j}\ \pmb{,} \ u^{_{'} t}_{i,j} + dt \cdot v^2 \cdot (u^t_{i+1,j} + u^t_{i-1, j} + u^t_{i, j+1} + u^t_{i, j-1} - 4 u^t_{i, j})\\
   \end{array} \right .
 \end{eqnarray*}
 
@@ -103,9 +103,9 @@ f' : \left \{ \begin{array}{c c l }
 \begin{eqnarray*}
 \delta : \left \{ \begin{array}{c c l }
   \mathcal{Q} & \longrightarrow & \mathcal{Q} \\
-  x_{i,j}^t = (s \ \pmb{,} \ u^{t+1}_{i,j}\ \pmb{,} \ u^{_{'} t+1}_{i,j}) & \longmapsto &
+  x_{i,j}^t = (s \ \pmb{,} \ u^{t}_{i,j}\ \pmb{,} \ u^{_{'} t}_{i,j}) & \longmapsto &
   \begin{cases}s, 0, 0\mbox{ if s = 0}\\
-    s, f(x^{t}_{i,j}) + f'(x^t_{i,j})\ \pmb{,} f'(x^t_{i,j}) + v^2 \cdot (f(x^t_{i+1,j}) \\+ f(x^t_{i-1, j}) + f(x^t_{i, j+1}) + f(x^t_{i, j-1}) - 4 f(x^t_{i, j})) 
+    s, f(x^{t}_{i,j}) + dt \cdot f'(x^t_{i,j})\ \pmb{,} f'(x^t_{i,j}) + dt \cdot v^2 \cdot (f(x^t_{i+1,j}) \\+ f(x^t_{i-1, j}) + f(x^t_{i, j+1}) + f(x^t_{i, j-1}) - 4 f(x^t_{i, j})) 
     \end{cases}\\
   \end{array} \right .
 \end{eqnarray*}
@@ -117,11 +117,11 @@ f' : \left \{ \begin{array}{c c l }
 \begin{eqnarray*}
 \delta : \left \{ \begin{array}{c c l }
   \mathcal{Q} & \longrightarrow & \mathcal{Q} \\
-  x_{i,j}^t = (s \ \pmb{,} \ u^{t+1}_{i,j}\ \pmb{,} \ u^{_{'} t+1}_{i,j} \ \pmb{,} \ c) & \longmapsto &
+  x_{i,j}^t = (s \ \pmb{,} \ u^{t}_{i,j}\ \pmb{,} \ u^{_{'} t}_{i,j} \ \pmb{,} \ c) & \longmapsto &
   \begin{cases}s, 0, 0\mbox{ if s = 0}\\
-    s, f(x^{t}_{i,j}) + f'(x^t_{i,j})\ \pmb{,} f'(x^t_{i,j}) + v^2 \cdot (f(x^t_{i+1,j}) \\+ f(x^t_{i-1, j}) + f(x^t_{i, j+1}) + f(x^t_{i, j-1}) - 4 f(x^t_{i, j})),\\
+    s, f(x^{t}_{i,j}) + dt \cdot f'(x^t_{i,j})\ \pmb{,} f'(x^t_{i,j}) + dt \cdot v^2 \cdot (f(x^t_{i+1,j}) \\+ f(x^t_{i-1, j}) + f(x^t_{i, j+1}) + f(x^t_{i, j-1}) - 4 f(x^t_{i, j})),\\
     \begin{cases} 0 \mbox{ if }s \leq 1\\
-      c + (f(x^{t}_{i,j}) + f'(x^t_{i,j}))^2 \mbox{ if s = 2} \\
+      c + (f(x^{t}_{i,j}) + dt \cdot f'(x^t_{i,j}))^2 \mbox{ if s = 2} \\
     \end{cases}
   \end{cases}
   \end{array} \right .
@@ -136,7 +136,7 @@ f' : \left \{ \begin{array}{c c l }
 
 \section{Experimental Science}
 
-\paragraph{Question 8a)} We need to check if this is close to reality or not. We could try to see if the propagation is correct, and then try to observe more complexe phenomenon, like interferences.
+\paragraph{Question 8a)} We need to check if this is close to reality or not. We could try to see if the propagation is correct, and then try to observe more complex phenomena, like interferences. Propagations look realistic if the time interval $dt$ is small enough (see sample\_type1.mp4). Concerning interferences, I implemented a program generating something roughly like Young's experiment. Interferences are quite realistic, see the young.mp4 file for example.
 
 \section{Notes on the implementation}
 
