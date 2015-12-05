@@ -121,16 +121,16 @@ int step123(inst i, int r, int s)
     size_t local_nrows = global_grid.n/instance.p;
     size_t local_ncols = global_grid.m/instance.q;
 	
-    MPI_File_set_view(input_file, grid_start + global_grid.m*global_grid.n/(instance.p)*p_size*coord[0] + global_grid.m/(instance.q)*p_size*coord[1], p_cell, matrix, "native", MPI_INFO_NULL);
+    MPI_File_set_view(input_file, grid_start + global_grid.m*local_nrows*p_size*coord[0] + local_ncols*p_size*coord[1], p_cell, matrix, "native", MPI_INFO_NULL);
 
     // allocate the cell array we will use
     cell **cells;
     cells = malloc(2*sizeof(cell *));
     double *sensors;
 	
-    cells[1] = calloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q),sizeof(cell));
-    cells[0] = calloc((2+global_grid.n/instance.p)*(2+global_grid.m/instance.q),sizeof(cell));
-    sensors = calloc(global_grid.n/instance.p*global_grid.m/instance.q, sizeof(double));
+    cells[1] = calloc((2+local_nrows)*(2+local_ncols),sizeof(cell));
+    cells[0] = calloc((2+local_nrows)*(2+local_ncols),sizeof(cell));
+    sensors = calloc(local_nrows*local_ncols, sizeof(double));
 	
     MPI_File_read_all(input_file, cells[0], 1, ematrix, MPI_STATUS_IGNORE);
 
@@ -138,9 +138,9 @@ int step123(inst i, int r, int s)
 
 
 #ifdef DEBUG
-    for(size_t i = 1; i < 1+global_grid.n/instance.p; i++)
-	for(size_t j = 1; j < 1+global_grid.m/instance.q; j++)
-	    fprintf(stderr, "%d - %d %f\n", rank, cells[0][i*(2+global_grid.m/instance.q)+j].type, cells[0][i*(2+global_grid.m/instance.q)+j].u);
+    for(size_t i = 1; i < 1+local_nrows; i++)
+	for(size_t j = 1; j < 1+local_ncols; j++)
+	    fprintf(stderr, "%d - %d %f\n", rank, cells[0][i*(2+local_ncols)+j].type, cells[0][i*(2+local_ncols)+j].u);
 #endif
 
     // in fact, we only need to send the value u. This costs a bit less (but is noticeable).
@@ -220,7 +220,7 @@ int step123(inst i, int r, int s)
 	    sprintf(alldump, instance.alldump, (s / instance.frequency));
 	    MPI_File_open(comm, alldump, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &dump_file);
 		
-	    MPI_File_set_view(dump_file, global_grid.m*global_grid.n/(instance.p)*sizeof(double)*coord[0] + global_grid.m/(instance.q)*sizeof(double)*coord[1], MPI_DOUBLE, d_matrix, "native", MPI_INFO_NULL);
+	    MPI_File_set_view(dump_file, global_grid.m*local_nrows*sizeof(double)*coord[0] + local_ncols*sizeof(double)*coord[1], MPI_DOUBLE, d_matrix, "native", MPI_INFO_NULL);
 		
 	    MPI_File_write_all(dump_file, &(cells[curr][0].u), 1, d_rmatrix, MPI_STATUS_IGNORE);
 	    MPI_File_close(&dump_file);
@@ -235,7 +235,7 @@ int step123(inst i, int r, int s)
 	// bon, comment on fait ça ? peut être qu'en faisant un resize ça marche ?
 	MPI_File last_file;
 	MPI_File_open(comm, instance.lastdump, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &last_file); 
-	MPI_File_set_view(last_file, global_grid.m*global_grid.n/(instance.p)*sizeof(double)*coord[0] + global_grid.m/(instance.q)*sizeof(double)*coord[1], MPI_DOUBLE, d_matrix, "native", MPI_INFO_NULL); // déjà, il y a un grid_strat en trop, d_type ou MPI_DOUBLE ?
+	MPI_File_set_view(last_file, global_grid.m*local_nrows*sizeof(double)*coord[0] + local_ncols*sizeof(double)*coord[1], MPI_DOUBLE, d_matrix, "native", MPI_INFO_NULL); // déjà, il y a un grid_strat en trop, d_type ou MPI_DOUBLE ?
 
 	MPI_File_write_all(last_file, &(cells[next][0].u), 1, d_rmatrix, MPI_STATUS_IGNORE);
 	MPI_File_close(&last_file);
@@ -258,7 +258,7 @@ int step123(inst i, int r, int s)
 		if(instance.step == 3 && cells[next][j+i*(2+local_ncols)].type == 2)
 		{
 		    memset(text,0,sizeof(text));
-		    sprintf(text, "%zu %zu %f\r\n", (i-1)+coord[0]*global_grid.n/instance.p, (j-1)+coord[1]*global_grid.m/instance.q, sensors[(j-1)+(i-1)*local_ncols]);
+		    sprintf(text, "%zu %zu %f\r\n", (i-1)+coord[0]*local_nrows, (j-1)+coord[1]*local_ncols, sensors[(j-1)+(i-1)*local_ncols]);
 		    MPI_File_write(sensor_file, text, 1, string, MPI_STATUS_IGNORE);
 		}
 		    
