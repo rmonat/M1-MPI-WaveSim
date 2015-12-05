@@ -273,7 +273,14 @@ int step123(inst i, int r, int s)
     free(cells);
     free(alldump);
     MPI_File_close(&input_file); // TODO : mettre plus tôt
-    MPI_Type_free(&p_cell);
     MPI_Type_free(&a_cell);
+    MPI_Type_free(&p_cell);
     MPI_Type_free(&matrix);
+    MPI_Type_free(&ematrix);
+    MPI_Type_free(&d_type);
+    MPI_Type_free(&d_matrix);
+    MPI_Type_free(&d_rmatrix);
+    MPI_Type_free(&l_row);
+    MPI_Type_free(&l_col);
+    MPI_Type_free(&string);
 }
