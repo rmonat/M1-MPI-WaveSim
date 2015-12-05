@@ -1,5 +1,3 @@
-#define _XOPEN_SOURCE
-// TODO : iteration et steps plutôt des unsigned int
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

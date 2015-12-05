@@ -134,6 +134,7 @@ int step123(inst i, int r, int s)
 	
     MPI_File_read_all(input_file, cells[0], 1, ematrix, MPI_STATUS_IGNORE);
 
+    MPI_File_close(&input_file);
 
 
 #ifdef DEBUG
@@ -228,7 +229,7 @@ int step123(inst i, int r, int s)
 	}
     }
 
-	
+
     if(instance.lastdump != NULL)
     {
 	// bon, comment on fait ça ? peut être qu'en faisant un resize ça marche ?
@@ -272,7 +273,6 @@ int step123(inst i, int r, int s)
     // Some cleaning
     free(cells);
     free(alldump);
-    MPI_File_close(&input_file); // TODO : mettre plus tôt
     MPI_Type_free(&a_cell);
     MPI_Type_free(&p_cell);
     MPI_Type_free(&matrix);

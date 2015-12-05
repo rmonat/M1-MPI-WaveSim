@@ -30,13 +30,11 @@ void step0(inst instance, grid *g)
 	{
 	    for(size_t j = 0; j < m; j++)
 	    {
-		// TODO : gérer les bords
 		tmp.data[j+i*m].u = current.data[j+i*m].u + (current.data[j+i*m].v * instance.dt);
 		tmp.data[j+i*m].v = current.data[j+i*m].v + sqspeed * (current.data[j+((i+1) % n)*m].u + current.data[j+((n+i-1) % n)*m].u + current.data[((j+1) % m) + i*m].u + current.data[((m+j-1) % m) + i*m].u - (4 * current.data[j+i*m].u)) * instance.dt;
 		
 	    }
 	}
-//	printf("\t\t\t%f\n", current.data[158+42*256].u);
 
 	if(instance.alldump != NULL)
 	{

@@ -20,9 +20,6 @@ void print_usage()
 	    "\t-frequency n: store only 1/n element in alldump\n"
 	    "Example:\n"
 	    "mpirun -np 32 ./main -step 3 -i toolbox/sample_type1.in -iterations 1000 -dt 0.1 -grid 4 8 -alldump output_%%03d.dump -sensor output_sensor.log\n");
-    
-// TODO : et frprintf sur stderr en plus
-
 }
 
 void init_inst(inst *instance)
