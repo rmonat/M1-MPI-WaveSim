@@ -15,7 +15,7 @@ typedef struct cell2
 } cell2;
 
 
-int step4(inst i, int r, int s)
+void step4(inst i, int r, int s)
 {
     inst instance = i;
     int rank = r;
@@ -61,13 +61,15 @@ int step4(inst i, int r, int s)
     if(!(global_grid.n % instance.p == 0 && global_grid.m % instance.q == 0))
     {
 	if(rank == 0)
-	    fprintf(stderr, "Error: please choose the grid parameters so they divide the grid of the cellular automaton. For example %zu %zu\n", instance.p + (global_grid.n % instance.p), instance.q + (global_grid.m % instance.q));
+	    fprintf(stderr, "Error: please choose the grid parameters so they divide the grid of the cellular automaton. For example %zu %zu, but you need to move from %d procs to %zu\n", instance.p + (global_grid.n % instance.p), instance.q + (global_grid.m % instance.q), size, (instance.p + (global_grid.n % instance.p))*(instance.q + (global_grid.m % instance.q)));
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Finalize();
 	exit(EXIT_FAILURE);
     }
-    size_t nb_cells = global_grid.n * global_grid.m;
 
+    size_t local_nrows = global_grid.n/instance.p;
+    size_t local_ncols = global_grid.m/instance.q;
+    
     // Now we create the data structures.
     int blocks[2] = {1, 2};
     MPI_Datatype types[2] = {MPI_BYTE, MPI_DOUBLE};
@@ -92,7 +94,7 @@ int step4(inst i, int r, int s)
     // Now, we create our matrix
     MPI_Datatype matrix;
     int sizes[2] = {global_grid.n, global_grid.m};
-    int subsizes[2] = {global_grid.n / instance.p, global_grid.m / instance.q};
+    int subsizes[2] = {local_nrows, local_ncols};
     int starts[2] = {0, 0};
     MPI_Type_create_subarray(2, sizes, subsizes, starts, MPI_ORDER_C, p_cell, &matrix);
     MPI_Type_commit(&matrix);
@@ -125,10 +127,6 @@ int step4(inst i, int r, int s)
     MPI_Offset grid_start;
     MPI_File_get_position(input_file, &grid_start);
 
-
-    size_t local_size = nb_cells / (instance.p * instance.q);
-    size_t local_nrows = global_grid.n/instance.p;
-    size_t local_ncols = global_grid.m/instance.q;
 	
     MPI_File_set_view(input_file, grid_start + global_grid.m*local_nrows*p_size*coord[0] + local_ncols*p_size*coord[1], p_cell, matrix, "native", MPI_INFO_NULL);
 
